@@ -1,10 +1,10 @@
 /**
- * AirSense India - Web Application Client Logic
+ * AirSense India - Full Application Client Logic
  * Author: Preethish (College Project)
- * Implements CPCB Indian AQI Calculation, Pollution Index, Forecasting, Maps, and Charts
+ * Real-time CPCB Sub-Index AQI, Composite Pollution Index, Interactive Maps, Charts & Forecasting
  */
 
-// CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
+// Official CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
 const CPCB_BREAKPOINTS = {
   pm25: [
     [0.0, 30.0, 0, 50],
@@ -273,6 +273,7 @@ function calculateCPI(pollutants) {
 
 // Global App State
 let currentCity = INDIAN_CITIES_DATA[0];
+let activeCityDetails = null;
 let leafletMap = null;
 let mapMarkers = [];
 let hourlyChartInstance = null;
@@ -284,8 +285,8 @@ let alertThreshold = 200;
 document.addEventListener("DOMContentLoaded", () => {
   initCitySelector();
   initIndiaMap();
-  loadCityData(currentCity.id);
-  initCalculatorPresets();
+  loadCityData("delhi");
+  initCalculatorControls();
   initCharts();
   initAlertControls();
 });
@@ -309,21 +310,105 @@ function initCitySelector() {
   });
 }
 
-// Load and render active city details
-function loadCityData(cityId) {
+// Load City Data: Queries FastAPI Backend first, falls back to client database if offline
+async function loadCityData(cityId) {
+  let backendData = null;
+  try {
+    const res = await fetch(`/api/city/${cityId}`);
+    if (res.ok) {
+      backendData = await res.json();
+    }
+  } catch (err) {
+    console.log("Backend offline or unreachable, using local data service fallback:", err);
+  }
+
+  if (backendData) {
+    applyBackendCityData(backendData);
+  } else {
+    applyLocalCityData(cityId);
+  }
+}
+
+// Update UI from FastAPI Backend API
+function applyBackendCityData(data) {
+  activeCityDetails = data;
+  const info = data.city_info;
+  const aqi = data.aqi_data;
+  const cpi = data.pollution_index_data;
+  const adv = data.health_advisory;
+  const pollutants = data.raw_pollutants;
+
+  currentCity = INDIAN_CITIES_DATA.find(c => c.id === info.id) || currentCity;
+
+  // Header display
+  document.getElementById("cityNameDisplay").textContent = info.name;
+  document.getElementById("stationDisplay").textContent = info.station;
+  document.getElementById("stationDateDisplay").textContent = info.timestamp || new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+
+  // AQI Circle
+  const aqiBadge = document.getElementById("aqiCircleBadge");
+  const aqiVal = document.getElementById("aqiDisplayValue");
+  const aqiCat = document.getElementById("aqiCategoryBadge");
+  const aqiDesc = document.getElementById("aqiDescription");
+  const dominantBadge = document.getElementById("dominantPollutantBadge");
+
+  aqiVal.textContent = aqi.aqi;
+  aqiBadge.style.backgroundColor = aqi.color;
+  aqiCat.textContent = aqi.category;
+  aqiCat.style.backgroundColor = aqi.color;
+  aqiCat.style.color = aqi.textColor || "#ffffff";
+  aqiDesc.textContent = aqi.description || "Monitored as per CPCB CAAQMS guidelines.";
+  dominantBadge.textContent = `Dominant Pollutant: ${aqi.dominant_name} (Sub-index: ${aqi.aqi})`;
+
+  // CPI Card
+  document.getElementById("cpiValue").textContent = cpi.pollution_index;
+  document.getElementById("cpiStatusBadge").textContent = cpi.category || cpi.status;
+  document.getElementById("cpiStatusBadge").style.backgroundColor = cpi.color;
+  document.getElementById("cpiRatioDesc").textContent = cpi.summary || 
+    `AQI is ${aqi.aqi} (${aqi.dominant_name} peak), while Composite Pollution Index is ${cpi.pollution_index}.`;
+
+  // Weather stats
+  document.getElementById("weatherTemp").textContent = `${info.temp}°C`;
+  document.getElementById("weatherHumidity").textContent = `${info.humidity}%`;
+  document.getElementById("weatherWind").textContent = `${info.wind_speed} km/h`;
+
+  // Render Pollutant Grid Cards
+  renderPollutantCards(pollutants, aqi.sub_indices);
+
+  // Render Health Advisory
+  renderHealthAdviceDirect(adv);
+
+  // Render 7-day forecast
+  renderForecastDirect(data.forecast_7days);
+
+  // Update Diurnal Chart
+  if (data.hourly_trend) {
+    updateHourlyChartDirect(data.hourly_trend, aqi.color);
+  } else {
+    updateHourlyChart(aqi.aqi);
+  }
+
+  // Check alert threshold
+  checkAlertThreshold(aqi.aqi, info.name);
+
+  // Map Pan
+  if (leafletMap && info.lat && info.lon) {
+    leafletMap.flyTo([info.lat, info.lon], 7, { duration: 1.2 });
+  }
+}
+
+// Update UI from Local JavaScript Engine
+function applyLocalCityData(cityId) {
   const city = INDIAN_CITIES_DATA.find(c => c.id === cityId) || INDIAN_CITIES_DATA[0];
   currentCity = city;
 
-  // Compute AQI and CPI
   const aqiRes = calculateOverallAQI(city.pollutants);
   const cpiRes = calculateCPI(city.pollutants);
 
-  // Update UI components
   document.getElementById("cityNameDisplay").textContent = city.name;
   document.getElementById("stationDisplay").textContent = city.station;
   document.getElementById("stationDateDisplay").textContent = new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 
-  // AQI Circle
   const aqiBadge = document.getElementById("aqiCircleBadge");
   const aqiVal = document.getElementById("aqiDisplayValue");
   const aqiCat = document.getElementById("aqiCategoryBadge");
@@ -338,7 +423,6 @@ function loadCityData(cityId) {
   aqiDesc.textContent = aqiRes.desc;
   dominantBadge.textContent = `Dominant Pollutant: ${aqiRes.dominantName} (Sub-index: ${aqiRes.subIndices[aqiRes.dominant] || aqiRes.aqi})`;
 
-  // CPI vs AQI comparison cards
   document.getElementById("cpiValue").textContent = cpiRes.cpi;
   document.getElementById("cpiStatusBadge").textContent = cpiRes.status;
   document.getElementById("cpiStatusBadge").style.backgroundColor = cpiRes.color;
@@ -346,27 +430,16 @@ function loadCityData(cityId) {
     `AQI is ${aqiRes.aqi} (${aqiRes.dominantName} peak), while Composite Pollution Index is ${cpiRes.cpi}. ` +
     (aqiRes.aqi > cpiRes.cpi ? "Pollution is currently dominated by a single particulate peak." : "High multi-pollutant cumulative chemical load detected.");
 
-  // Weather stats
   document.getElementById("weatherTemp").textContent = `${city.temp}°C`;
   document.getElementById("weatherHumidity").textContent = `${city.humidity}%`;
   document.getElementById("weatherWind").textContent = `${city.wind} km/h`;
 
-  // Render Pollutant Grid Cards
   renderPollutantCards(city.pollutants, aqiRes.subIndices);
-
-  // Render Health Advisory
   renderHealthAdvice(aqiRes.category);
-
-  // Render 7-day forecast
   renderForecast(city.name, aqiRes.aqi, aqiRes.dominantName);
-
-  // Update Charts
   updateHourlyChart(aqiRes.aqi);
-
-  // Check alert threshold
   checkAlertThreshold(aqiRes.aqi, city.name);
 
-  // Update Map view
   if (leafletMap) {
     leafletMap.flyTo([city.lat, city.lon], 7, { duration: 1.2 });
   }
@@ -417,102 +490,80 @@ function renderPollutantCards(pollutants, subIndices) {
   });
 }
 
-// Render Health Advice Cards
-function renderHealthAdvice(category) {
+function renderHealthAdviceDirect(adv) {
   const container = document.getElementById("healthAdviceContainer");
-  if (!container) return;
+  if (!container || !adv) return;
 
-  const advisories = {
-    Good: {
-      badge: "Ideal Air Quality",
-      mask: "No mask required. Enjoy clean air!",
-      maskIcon: "fa-circle-check text-success",
-      outdoor: "Perfect conditions for jogging, cycling, and children's sports.",
-      sensitive: "Safe for everyone, including infants and senior citizens.",
-      indoor: "Keep windows wide open for natural air ventilation."
-    },
-    Satisfactory: {
-      badge: "Acceptable Air Quality",
-      mask: "Mask not needed for general public. Sensitive individuals may opt for comfort.",
-      maskIcon: "fa-shield-heart text-info",
-      outdoor: "Normal outdoor activities are safe for healthy adults.",
-      sensitive: "Mild breathing discomfort possible in chronic asthma patients.",
-      indoor: "Natural ventilation is safe during the day."
-    },
-    Moderate: {
-      badge: "Caution for Sensitive Groups",
-      mask: "Recommended for asthma / heart patients during traffic hours.",
-      maskIcon: "fa-mask text-warning",
-      outdoor: "Healthy adults can exercise outside; avoid heavy exertion near busy highways.",
-      sensitive: "Children and elderly should take frequent breaks during active play.",
-      indoor: "Keep windows shut during early morning smog or late night inversion."
-    },
-    Poor: {
-      badge: "Unhealthy Air - Precautions Needed",
-      mask: "N95 / FFP2 respirator mask strongly advised outdoors.",
-      maskIcon: "fa-head-side-mask text-warning",
-      outdoor: "Limit prolonged outdoor exertion. Shift workouts indoors.",
-      sensitive: "Elderly and children must limit outdoor time. Keep rescue inhalers handy.",
-      indoor: "Use HEPA air purifier in bedrooms; seal window draughts."
-    },
-    Very Poor: {
-      badge: "Hazardous Conditions - High Risk",
-      mask: "Mandatory N95 / FFP3 mask outdoors; cloth masks offer negligible protection.",
-      maskIcon: "fa-triangle-exclamation text-danger",
-      outdoor: "Strictly avoid outdoor jogging and school athletic events.",
-      sensitive: "Children and elderly must stay indoors. High likelihood of wheezing & cough.",
-      indoor: "Run air purifiers at max fan speed. Use wet mopping to capture settled dust."
-    },
-    Severe: {
-      badge: "Emergency Public Health Alert",
-      mask: "Respirator mandatory. Minimize all outdoor exposure to zero.",
-      maskIcon: "fa-skull-crossbones text-danger",
-      outdoor: "Emergency conditions. Cancel all outdoor activities immediately.",
-      sensitive: "High risk of acute cardiovascular and respiratory distress. Seek medical help if breathless.",
-      indoor: "Keep all windows, doors, and vents completely sealed. Continuous HEPA filtration."
-    }
-  };
-
-  const adv = advisories[category] || advisories.Moderate;
   container.innerHTML = `
     <div class="row g-3">
       <div class="col-md-6">
         <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
           <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-mask me-2 text-primary"></i>Mask Recommendation</h6>
-          <p class="text-light mb-1 small">${adv.mask}</p>
+          <p class="text-light mb-1 small">${adv.mask_type || "N95 / FFP2 mask recommended outdoors."}</p>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
           <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-person-running me-2 text-primary"></i>Outdoor Workouts & Sports</h6>
-          <p class="text-light mb-1 small">${adv.outdoor}</p>
+          <p class="text-light mb-1 small">${adv.outdoor_activity || "Normal outdoor activities are safe."}</p>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
           <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-child me-2 text-primary"></i>Children & Elderly Care</h6>
-          <p class="text-light mb-1 small">${adv.sensitive}</p>
+          <p class="text-light mb-1 small">${adv.sensitive_groups || "Limit strenuous exertion."}</p>
         </div>
       </div>
       <div class="col-md-6">
         <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
           <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-house-chimney-window me-2 text-primary"></i>Indoor Air & Purifier Advice</h6>
-          <p class="text-light mb-1 small">${adv.indoor}</p>
+          <p class="text-light mb-1 small">${adv.ventilation || "Use HEPA air purifier indoors."}</p>
         </div>
       </div>
     </div>
   `;
 }
 
-// 7-Day Forecast Generator
+function renderHealthAdvice(category) {
+  const advisories = {
+    Good: { mask: "No mask required. Enjoy clean air!", outdoor: "Perfect conditions for jogging, cycling, and sports.", sensitive: "Safe for everyone, including infants and senior citizens.", indoor: "Keep windows wide open for natural air ventilation." },
+    Satisfactory: { mask: "Mask not needed for general public.", outdoor: "Normal outdoor activities are safe.", sensitive: "Mild breathing discomfort possible in chronic asthma patients.", indoor: "Natural ventilation is safe during daytime." },
+    Moderate: { mask: "Recommended for asthma / heart patients during traffic hours.", outdoor: "Healthy adults can exercise outside; avoid heavy exertion near busy highways.", sensitive: "Children and elderly should take frequent breaks during active play.", indoor: "Keep windows shut during early morning smog or night inversion." },
+    Poor: { mask: "N95 / FFP2 respirator mask strongly advised outdoors.", outdoor: "Limit prolonged outdoor exertion. Shift workouts indoors.", sensitive: "Elderly and children must limit outdoor time. Keep rescue inhalers handy.", indoor: "Use HEPA air purifier in bedrooms; seal window draughts." },
+    Very Poor: { mask: "Mandatory N95 / FFP3 mask outdoors; cloth masks offer negligible protection.", outdoor: "Strictly avoid outdoor jogging and athletic events.", sensitive: "Children and elderly must stay indoors. High likelihood of wheezing & cough.", indoor: "Run air purifiers at max fan speed. Use wet mopping." },
+    Severe: { mask: "Respirator mandatory. Minimize all outdoor exposure to zero.", outdoor: "Emergency conditions. Cancel all outdoor activities immediately.", sensitive: "High risk of acute cardiovascular and respiratory distress. Seek medical help.", indoor: "Keep all windows, doors, and vents completely sealed." }
+  };
+  renderHealthAdviceDirect(advisories[category] || advisories.Moderate);
+}
+
+function renderForecastDirect(forecastList) {
+  const container = document.getElementById("forecastCardsContainer");
+  if (!container || !forecastList) return;
+
+  container.innerHTML = "";
+  forecastList.forEach(f => {
+    const col = document.createElement("div");
+    col.className = "col";
+    col.innerHTML = `
+      <div class="forecast-card h-100">
+        <div class="fw-bold text-white mb-1">${f.day_name || "Forecast"}</div>
+        <div class="text-muted small mb-2">${f.date || ""}</div>
+        <div class="my-2"><i class="fa-solid ${f.weather_icon || 'fa-cloud-sun text-info'} fs-4"></i></div>
+        <div class="fs-4 fw-bold" style="color: ${f.color}">${f.predicted_aqi}</div>
+        <span class="badge my-2" style="background-color: ${f.color}; color: ${f.textColor || '#fff'}">${f.category}</span>
+        <div class="text-muted" style="font-size: 0.72rem">${f.trend || 'Stable'} (${f.confidence_score || '90%'})</div>
+      </div>
+    `;
+    container.appendChild(col);
+  });
+}
+
 function renderForecast(cityName, baseAqi, dominantPollutant) {
   const container = document.getElementById("forecastCardsContainer");
   if (!container) return;
 
   container.innerHTML = "";
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const weatherIcons = ["fa-sun text-warning", "fa-smog text-secondary", "fa-cloud-sun text-info", "fa-wind text-primary"];
-
   const now = new Date();
   let simAqi = baseAqi;
 
@@ -544,46 +595,53 @@ function renderForecast(cityName, baseAqi, dominantPollutant) {
 // Leaflet Interactive India Map
 function initIndiaMap() {
   const mapElement = document.getElementById("indiaMap");
-  if (!mapElement) return;
+  if (!mapElement || typeof L === 'undefined') return;
 
-  leafletMap = L.map("indiaMap", {
-    center: [22.5, 79.5],
-    zoom: 5,
-    minZoom: 4,
-    maxZoom: 10
-  });
+  try {
+    leafletMap = L.map("indiaMap", {
+      center: [22.5, 79.5],
+      zoom: 5,
+      minZoom: 4,
+      maxZoom: 10
+    });
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(leafletMap);
-
-  // Add colored circle markers for Indian cities
-  INDIAN_CITIES_DATA.forEach(city => {
-    const aqiRes = calculateOverallAQI(city.pollutants);
-    const marker = L.circleMarker([city.lat, city.lon], {
-      radius: 12,
-      fillColor: aqiRes.color,
-      color: "#ffffff",
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(leafletMap);
 
-    marker.bindPopup(`
-      <div style="color: #111; font-family: sans-serif; min-width: 160px">
-        <h6 style="margin: 0 0 4px 0; font-weight: 700;">${city.name}</h6>
-        <div style="font-size: 0.8rem; color: #555; margin-bottom: 6px;">${city.state}</div>
-        <div style="background: ${aqiRes.color}; color: ${aqiRes.textColor}; padding: 4px 8px; border-radius: 6px; font-weight: 700; text-align: center; margin-bottom: 6px;">
-          AQI: ${aqiRes.aqi} (${aqiRes.category})
+    INDIAN_CITIES_DATA.forEach(city => {
+      const aqiRes = calculateOverallAQI(city.pollutants);
+      const marker = L.circleMarker([city.lat, city.lon], {
+        radius: 12,
+        fillColor: aqiRes.color,
+        color: "#ffffff",
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(leafletMap);
+
+      marker.bindPopup(`
+        <div style="color: #111; font-family: sans-serif; min-width: 160px">
+          <h6 style="margin: 0 0 4px 0; font-weight: 700;">${city.name}</h6>
+          <div style="font-size: 0.8rem; color: #555; margin-bottom: 6px;">${city.state}</div>
+          <div style="background: ${aqiRes.color}; color: ${aqiRes.textColor}; padding: 4px 8px; border-radius: 6px; font-weight: 700; text-align: center; margin-bottom: 6px;">
+            AQI: ${aqiRes.aqi} (${aqiRes.category})
+          </div>
+          <div style="font-size: 0.75rem; color: #444;">Dominant: <b>${aqiRes.dominantName}</b></div>
+          <button onclick="window.selectCityFromMap('${city.id}')" style="width: 100%; margin-top: 8px; background: #2563eb; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">
+            View Full Dashboard
+          </button>
         </div>
-        <div style="font-size: 0.75rem; color: #444;">Dominant: <b>${aqiRes.dominantName}</b></div>
-        <button onclick="window.selectCityFromMap('${city.id}')" style="width: 100%; margin-top: 8px; background: #2563eb; color: white; border: none; padding: 4px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
-          View Full Dashboard
-        </button>
-      </div>
-    `);
-    mapMarkers.push(marker);
-  });
+      `);
+      mapMarkers.push(marker);
+    });
+
+    setTimeout(() => {
+      if (leafletMap) leafletMap.invalidateSize();
+    }, 400);
+  } catch (e) {
+    console.error("Map initialization note:", e);
+  }
 }
 
 window.selectCityFromMap = function(cityId) {
@@ -595,6 +653,8 @@ window.selectCityFromMap = function(cityId) {
 
 // Interactive Charts (Chart.js)
 function initCharts() {
+  if (typeof Chart === 'undefined') return;
+
   // 1. Hourly Trend Chart
   const hourlyCtx = document.getElementById("hourlyTrendChart");
   if (hourlyCtx) {
@@ -713,7 +773,14 @@ function initCharts() {
   }
 }
 
-// Update hourly chart based on city AQI
+function updateHourlyChartDirect(trendData, color) {
+  if (!hourlyChartInstance || !trendData) return;
+  hourlyChartInstance.data.labels = trendData.map(t => t.time);
+  hourlyChartInstance.data.datasets[0].data = trendData.map(t => t.aqi);
+  hourlyChartInstance.data.datasets[0].borderColor = color || "#3b82f6";
+  hourlyChartInstance.update();
+}
+
 function updateHourlyChart(baseAqi) {
   if (!hourlyChartInstance) return;
 
@@ -735,66 +802,113 @@ function updateHourlyChart(baseAqi) {
   hourlyChartInstance.update();
 }
 
-// Manual AQI Calculator Form Handling
-function initCalculatorPresets() {
+// AQI Calculator Logic: Connects to Backend POST /api/calculate with Client Fallback
+function initCalculatorControls() {
   const calcBtn = document.getElementById("btnComputeAQI");
-  if (calcBtn) {
-    calcBtn.addEventListener("click", () => {
-      const pm25 = parseFloat(document.getElementById("calc_pm25").value);
-      const pm10 = parseFloat(document.getElementById("calc_pm10").value);
-      const no2 = parseFloat(document.getElementById("calc_no2").value);
-      const so2 = parseFloat(document.getElementById("calc_so2").value);
-      const co = parseFloat(document.getElementById("calc_co").value);
-      const o3 = parseFloat(document.getElementById("calc_o3").value);
-      const nh3 = parseFloat(document.getElementById("calc_nh3").value);
+  if (!calcBtn) return;
 
-      const pollutants = {};
-      if (!isNaN(pm25)) pollutants.pm25 = pm25;
-      if (!isNaN(pm10)) pollutants.pm10 = pm10;
-      if (!isNaN(no2)) pollutants.no2 = no2;
-      if (!isNaN(so2)) pollutants.so2 = so2;
-      if (!isNaN(co)) pollutants.co = co;
-      if (!isNaN(o3)) pollutants.o3 = o3;
-      if (!isNaN(nh3)) pollutants.nh3 = nh3;
+  calcBtn.addEventListener("click", async () => {
+    // Read input concentrations
+    let pm25 = parseFloat(document.getElementById("calc_pm25").value);
+    let pm10 = parseFloat(document.getElementById("calc_pm10").value);
+    let no2 = parseFloat(document.getElementById("calc_no2").value);
+    let so2 = parseFloat(document.getElementById("calc_so2").value);
+    let co = parseFloat(document.getElementById("calc_co").value);
+    let o3 = parseFloat(document.getElementById("calc_o3").value);
+    let nh3 = parseFloat(document.getElementById("calc_nh3").value);
 
-      if (Object.keys(pollutants).length === 0) {
-        alert("Please enter at least one pollutant concentration.");
-        return;
-      }
+    // If all are blank, load reasonable default
+    if (isNaN(pm25) && isNaN(pm10) && isNaN(no2) && isNaN(so2) && isNaN(co) && isNaN(o3) && isNaN(nh3)) {
+      document.getElementById("calc_pm25").value = 95;
+      document.getElementById("calc_pm10").value = 160;
+      document.getElementById("calc_no2").value = 52;
+      document.getElementById("calc_so2").value = 24;
+      document.getElementById("calc_co").value = 1.6;
+      document.getElementById("calc_o3").value = 42;
+      document.getElementById("calc_nh3").value = 28;
+      pm25 = 95; pm10 = 160; no2 = 52; so2 = 24; co = 1.6; o3 = 42; nh3 = 28;
+    }
 
-      const res = calculateOverallAQI(pollutants);
-      const cpiRes = calculateCPI(pollutants);
+    const payload = {};
+    if (!isNaN(pm25)) payload.pm25 = pm25;
+    if (!isNaN(pm10)) payload.pm10 = pm10;
+    if (!isNaN(no2)) payload.no2 = no2;
+    if (!isNaN(so2)) payload.so2 = so2;
+    if (!isNaN(co)) payload.co = co;
+    if (!isNaN(o3)) payload.o3 = o3;
+    if (!isNaN(nh3)) payload.nh3 = nh3;
 
-      // Display results
-      const resContainer = document.getElementById("calcResultsBox");
-      resContainer.classList.remove("d-none");
-      resContainer.scrollIntoView({ behavior: "smooth" });
+    // Show button loading state
+    const originalText = calcBtn.innerHTML;
+    calcBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i> Computing...`;
+    calcBtn.disabled = true;
 
-      document.getElementById("calcResultAqi").textContent = res.aqi;
-      document.getElementById("calcResultCat").textContent = res.category;
-      document.getElementById("calcResultCat").style.backgroundColor = res.color;
-      document.getElementById("calcResultCat").style.color = res.textColor;
-      document.getElementById("calcResultDominant").textContent = res.dominantName;
-      document.getElementById("calcResultCPI").textContent = cpiRes.cpi;
+    let computedAqi = null;
+    let computedCpi = null;
 
-      // Render step-by-step breakdown table
-      const tbody = document.getElementById("calcStepsTableBody");
-      tbody.innerHTML = "";
-      res.breakdowns.forEach(step => {
-        const cat = getAQICategory(step.sub_index);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="fw-bold">${step.pollutant}</td>
-          <td>${step.concentration} ${step.unit}</td>
-          <td>[${step.b_lo} - ${step.b_hi}]</td>
-          <td>[${step.i_lo} - ${step.i_hi}]</td>
-          <td><code>${step.formula}</code></td>
-          <td class="fw-bold" style="color: ${cat.color}">${step.sub_index}</td>
-        `;
-        tbody.appendChild(tr);
+    // 1. Try FastAPI Backend
+    try {
+      const response = await fetch('/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-    });
-  }
+      if (response.ok) {
+        const data = await response.json();
+        computedAqi = data.aqi_data;
+        computedCpi = data.pollution_index_data;
+      }
+    } catch (err) {
+      console.log("Backend calculation failed, using local fallback:", err);
+    }
+
+    // 2. Fallback to Local Engine if backend offline
+    if (!computedAqi) {
+      computedAqi = calculateOverallAQI(payload);
+      computedCpi = calculateCPI(payload);
+    }
+
+    // Render results
+    renderCalculationResults(computedAqi, computedCpi);
+
+    // Restore button
+    calcBtn.innerHTML = originalText;
+    calcBtn.disabled = false;
+  });
+}
+
+function renderCalculationResults(res, cpiRes) {
+  const resContainer = document.getElementById("calcResultsBox");
+  if (!resContainer) return;
+
+  resContainer.classList.remove("d-none");
+  resContainer.scrollIntoView({ behavior: "smooth" });
+
+  document.getElementById("calcResultAqi").textContent = res.aqi;
+  document.getElementById("calcResultCat").textContent = res.category;
+  document.getElementById("calcResultCat").style.backgroundColor = res.color;
+  document.getElementById("calcResultCat").style.color = res.textColor || "#ffffff";
+  document.getElementById("calcResultDominant").textContent = res.dominant_name || res.dominantName || "PM2.5";
+  document.getElementById("calcResultCPI").textContent = cpiRes.pollution_index || cpiRes.cpi;
+
+  // Render step-by-step table
+  const tbody = document.getElementById("calcStepsTableBody");
+  tbody.innerHTML = "";
+  const breakdowns = res.breakdowns || [];
+
+  breakdowns.forEach(step => {
+    const cat = getAQICategory(step.sub_index);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="fw-bold">${step.pollutant}</td>
+      <td>${step.concentration} ${step.unit}</td>
+      <td>[${step.b_lo} - ${step.b_hi}]</td>
+      <td>[${step.i_lo} - ${step.i_hi}]</td>
+      <td><code>${step.formula}</code></td>
+      <td class="fw-bold" style="color: ${cat.color}">${step.sub_index}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // Preset Buttons for Calculator
@@ -817,14 +931,15 @@ window.loadCalcPreset = function(type) {
   document.getElementById("calc_o3").value = p.o3;
   document.getElementById("calc_nh3").value = p.nh3;
 
-  document.getElementById("btnComputeAQI").click();
+  const btn = document.getElementById("btnComputeAQI");
+  if (btn) btn.click();
 };
 
 // Alert Controls
 function initAlertControls() {
   const alertInput = document.getElementById("alertThresholdInput");
   if (alertInput) {
-    alertInput.addEventListener("change", (e) => {
+    alertInput.addEventListener("input", (e) => {
       alertThreshold = parseInt(e.target.value) || 200;
       const aqiRes = calculateOverallAQI(currentCity.pollutants);
       checkAlertThreshold(aqiRes.aqi, currentCity.name);
@@ -846,8 +961,21 @@ function checkAlertThreshold(aqi, cityName) {
   }
 }
 
-// Export CSV Feature
+// Export CSV Feature (Tries FastAPI /api/export/{cityId} first, falls back to direct client-side blob)
 window.exportCityCSV = function() {
+  const cityId = currentCity ? currentCity.id : "delhi";
+  // Try backend export first
+  const backendExportUrl = `/api/export/${cityId}`;
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = backendExportUrl;
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 3000);
+
+  // Client-side instant fallback generator
   const aqiRes = calculateOverallAQI(currentCity.pollutants);
   const rows = [
     ["Parameter", "Value", "Unit"],

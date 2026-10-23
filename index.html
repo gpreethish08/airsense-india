@@ -10,7 +10,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Google Fonts: Inter -->
+  <!-- Google Fonts: Inter & Fira Code -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
@@ -92,7 +92,26 @@
             <div class="flex-grow-1" style="max-width: 380px;">
               <label class="form-label small text-muted mb-1"><i class="fa-solid fa-city me-1"></i> Select Monitored City:</label>
               <select id="citySelector" class="form-select form-select-custom">
-                <!-- Dynamically populated -->
+                <option value="delhi">Delhi NCR (Delhi) - Anand Vihar CAAQMS</option>
+                <option value="mumbai">Mumbai (Maharashtra) - BKC Bandra</option>
+                <option value="bengaluru">Bengaluru (Karnataka) - Hebbal</option>
+                <option value="kolkata">Kolkata (West Bengal) - Victoria Memorial</option>
+                <option value="chennai">Chennai (Tamil Nadu) - Velachery</option>
+                <option value="hyderabad">Hyderabad (Telangana) - Sanathnagar</option>
+                <option value="ahmedabad">Ahmedabad (Gujarat) - Maninagar</option>
+                <option value="pune">Pune (Maharashtra) - Shivajinagar</option>
+                <option value="lucknow">Lucknow (Uttar Pradesh) - Talkatora</option>
+                <option value="jaipur">Jaipur (Rajasthan) - Adarsh Nagar</option>
+                <option value="patna">Patna (Bihar) - Samarpal</option>
+                <option value="kanpur">Kanpur (Uttar Pradesh) - Nehru Nagar</option>
+                <option value="varanasi">Varanasi (Uttar Pradesh) - BHU</option>
+                <option value="chandigarh">Chandigarh (Punjab/Haryana) - Sector 22</option>
+                <option value="visakhapatnam">Visakhapatnam (Andhra Pradesh) - Gajuwaka</option>
+                <option value="surat">Surat (Gujarat) - SVNIT</option>
+                <option value="bhopal">Bhopal (Madhya Pradesh) - Paryavaran Parisar</option>
+                <option value="indore">Indore (Madhya Pradesh) - Chhoti Gwaltoli</option>
+                <option value="kochi">Kochi (Kerala) - Vyttila</option>
+                <option value="guwahati">Guwahati (Assam) - Railway Colony</option>
               </select>
             </div>
             <div>
@@ -325,45 +344,45 @@
         <!-- Presets Buttons -->
         <div class="mb-4">
           <span class="text-muted small me-2">Load Preset Scenario:</span>
-          <button class="btn btn-sm btn-outline-success me-1 rounded-pill" onclick="loadCalcPreset('clean')">Clean Green Day</button>
-          <button class="btn btn-sm btn-outline-warning me-1 rounded-pill" onclick="loadCalcPreset('moderate')">Bengaluru Spring</button>
-          <button class="btn btn-sm btn-outline-danger me-1 rounded-pill" onclick="loadCalcPreset('delhi_severe')">Delhi Severe Smog</button>
-          <button class="btn btn-sm btn-outline-info rounded-pill" onclick="loadCalcPreset('industrial_so2')">Industrial SO₂ Spike</button>
+          <button type="button" class="btn btn-sm btn-outline-success me-1 rounded-pill" onclick="loadCalcPreset('clean')">Clean Green Day</button>
+          <button type="button" class="btn btn-sm btn-outline-warning me-1 rounded-pill" onclick="loadCalcPreset('moderate')">Bengaluru Spring</button>
+          <button type="button" class="btn btn-sm btn-outline-danger me-1 rounded-pill" onclick="loadCalcPreset('delhi_severe')">Delhi Severe Smog</button>
+          <button type="button" class="btn btn-sm btn-outline-info rounded-pill" onclick="loadCalcPreset('industrial_so2')">Industrial SO₂ Spike</button>
         </div>
 
         <div class="row g-3">
           <div class="col-md-3 col-sm-6">
             <label class="form-label small text-muted">PM2.5 (µg/m³)</label>
-            <input type="number" id="calc_pm25" class="form-control form-control-custom" placeholder="e.g. 85">
+            <input type="number" id="calc_pm25" class="form-control form-control-custom" placeholder="e.g. 95" value="95">
           </div>
           <div class="col-md-3 col-sm-6">
             <label class="form-label small text-muted">PM10 (µg/m³)</label>
-            <input type="number" id="calc_pm10" class="form-control form-control-custom" placeholder="e.g. 150">
+            <input type="number" id="calc_pm10" class="form-control form-control-custom" placeholder="e.g. 160" value="160">
           </div>
           <div class="col-md-3 col-sm-6">
             <label class="form-label small text-muted">NO₂ (µg/m³)</label>
-            <input type="number" id="calc_no2" class="form-control form-control-custom" placeholder="e.g. 60">
+            <input type="number" id="calc_no2" class="form-control form-control-custom" placeholder="e.g. 52" value="52">
           </div>
           <div class="col-md-3 col-sm-6">
             <label class="form-label small text-muted">SO₂ (µg/m³)</label>
-            <input type="number" id="calc_so2" class="form-control form-control-custom" placeholder="e.g. 25">
+            <input type="number" id="calc_so2" class="form-control form-control-custom" placeholder="e.g. 24" value="24">
           </div>
           <div class="col-md-4 col-sm-6">
             <label class="form-label small text-muted">CO (mg/m³)</label>
-            <input type="number" id="calc_co" step="0.1" class="form-control form-control-custom" placeholder="e.g. 1.8">
+            <input type="number" id="calc_co" step="0.1" class="form-control form-control-custom" placeholder="e.g. 1.6" value="1.6">
           </div>
           <div class="col-md-4 col-sm-6">
             <label class="form-label small text-muted">O₃ (µg/m³)</label>
-            <input type="number" id="calc_o3" class="form-control form-control-custom" placeholder="e.g. 40">
+            <input type="number" id="calc_o3" class="form-control form-control-custom" placeholder="e.g. 42" value="42">
           </div>
           <div class="col-md-4 col-sm-6">
             <label class="form-label small text-muted">NH₃ (µg/m³)</label>
-            <input type="number" id="calc_nh3" class="form-control form-control-custom" placeholder="e.g. 28">
+            <input type="number" id="calc_nh3" class="form-control form-control-custom" placeholder="e.g. 28" value="28">
           </div>
         </div>
 
         <div class="mt-4 text-center">
-          <button id="btnComputeAQI" class="btn btn-primary px-5 py-2 rounded-pill fw-bold">
+          <button type="button" id="btnComputeAQI" class="btn btn-primary px-5 py-2 rounded-pill fw-bold">
             <i class="fa-solid fa-play me-2"></i> Compute CPCB AQI & Sub-Indices
           </button>
         </div>

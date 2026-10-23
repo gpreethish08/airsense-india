@@ -4,13 +4,15 @@ FastAPI Backend Server
 College Project for Preethish
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, List, Any
 import os
+import io
+import csv
 
 from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index, get_aqi_category
 from services.pollution_index import calculate_pollution_index
@@ -20,11 +22,11 @@ from services.data_service import get_all_cities, get_city_details, get_seasonal
 
 app = FastAPI(
     title="AirSense India API",
-    description="Live AQI and Pollution Index Dashboard with CPCB Calculation and Forecasting",
+    description="Live AQI and Pollution Index Dashboard with CPCB Calculation and ML Forecasting",
     version="1.0.0"
 )
 
-# Enable CORS for cross-origin requests (e.g., Vercel frontend, external clients)
+# Enable CORS for cross-origin requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,7 +35,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request Models
+# Base directories
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+CSS_DIR = os.path.join(PUBLIC_DIR, "css")
+JS_DIR = os.path.join(PUBLIC_DIR, "js")
+
+# Mount CSS & JS static routes explicitly
+if os.path.exists(CSS_DIR):
+    app.mount("/css", StaticFiles(directory=CSS_DIR), name="css")
+if os.path.exists(JS_DIR):
+    app.mount("/js", StaticFiles(directory=JS_DIR), name="js")
+if os.path.exists(PUBLIC_DIR):
+    app.mount("/static", StaticFiles(directory=PUBLIC_DIR), name="static")
+
+
+# Pydantic Request Models
 class CalculateAQIRequest(BaseModel):
     pm25: Optional[float] = None
     pm10: Optional[float] = None
@@ -51,7 +68,8 @@ def health_check():
         "app": "AirSense India",
         "author": "Preethish",
         "version": "1.0.0",
-        "cpcb_compliant": True
+        "cpcb_compliant": True,
+        "monitored_cities": len(INDIAN_CITIES)
     }
 
 
@@ -103,6 +121,18 @@ def calculate_aqi_endpoint(data: CalculateAQIRequest):
     }
 
 
+@app.get("/api/forecast/{city_id}")
+def get_city_forecast(city_id: str):
+    """Returns 7-day ML weather and AQI forecast for a city."""
+    details = get_city_details(city_id)
+    if not details:
+        raise HTTPException(status_code=404, detail=f"City '{city_id}' not found.")
+    return {
+        "city": details["city_info"]["name"],
+        "forecast": details["forecast_7days"]
+    }
+
+
 @app.get("/api/seasonal")
 def get_seasonal_data():
     """Returns regional seasonal trend patterns across Indian climatic zones."""
@@ -110,7 +140,7 @@ def get_seasonal_data():
 
 
 @app.get("/api/compare")
-def compare_cities(city_ids: str = Query("delhi,mumbai,bengaluru,kolkata")):
+def compare_cities(city_ids: str = Query("delhi,mumbai,bengaluru,kolkata,chennai,lucknow,hyderabad")):
     """Compares multiple cities across AQI, dominant pollutant, and CPI."""
     ids = [c.strip().lower() for c in city_ids.split(",") if c.strip()]
     comparison_data = []
@@ -119,6 +149,7 @@ def compare_cities(city_ids: str = Query("delhi,mumbai,bengaluru,kolkata")):
         details = get_city_details(c_id)
         if details:
             comparison_data.append({
+                "id": details["city_info"]["id"],
                 "name": details["city_info"]["name"],
                 "state": details["city_info"]["state"],
                 "aqi": details["aqi_data"]["aqi"],
@@ -134,17 +165,62 @@ def compare_cities(city_ids: str = Query("delhi,mumbai,bengaluru,kolkata")):
     return {"comparison": comparison_data}
 
 
-# Mount static assets if the folder exists
-static_dir = os.path.join(os.path.dirname(__file__), "public")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+@app.get("/api/export/{city_id}")
+def export_csv_endpoint(city_id: str):
+    """Generates and downloads a CSV report for a city's current air quality."""
+    details = get_city_details(city_id)
+    if not details:
+        raise HTTPException(status_code=404, detail="City not found.")
+        
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Parameter", "Value", "Unit"])
+    writer.writerow(["City", details["city_info"]["name"], ""])
+    writer.writerow(["State", details["city_info"]["state"], ""])
+    writer.writerow(["Station", details["city_info"]["station"], ""])
+    writer.writerow(["Timestamp", details["city_info"]["timestamp"], ""])
+    writer.writerow(["Overall AQI", details["aqi_data"]["aqi"], "CPCB Scale"])
+    writer.writerow(["Category", details["aqi_data"]["category"], ""])
+    writer.writerow(["Dominant Pollutant", details["aqi_data"]["dominant_name"], ""])
+    writer.writerow(["Composite Pollution Index (CPI)", details["pollution_index_data"]["pollution_index"], "NAAQS Weighted"])
+    
+    for p, v in details["raw_pollutants"].items():
+        unit = "mg/m³" if p == "co" else "µg/m³"
+        writer.writerow([p.upper(), v, unit])
+        
+    response = Response(content=output.getvalue(), media_type="text/csv")
+    response.headers["Content-Disposition"] = f"attachment; filename=AirSense_{city_id}_Report.csv"
+    return response
 
+
+# Root route
 @app.get("/")
 def serve_home():
-    index_path = os.path.join(os.path.dirname(__file__), "public", "index.html")
+    index_path = os.path.join(PUBLIC_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
+    root_index = os.path.join(BASE_DIR, "index.html")
+    if os.path.exists(root_index):
+        return FileResponse(root_index)
     return {"message": "AirSense India API is running. Access /docs for API documentation."}
+
+
+# Catch-all route to serve static files with zero 404s
+@app.get("/{file_path:path}")
+def serve_static_files(file_path: str):
+    # Try public directory first
+    p = os.path.join(PUBLIC_DIR, file_path)
+    if os.path.exists(p) and os.path.isfile(p):
+        return FileResponse(p)
+    # Try root directory
+    root_p = os.path.join(BASE_DIR, file_path)
+    if os.path.exists(root_p) and os.path.isfile(root_p):
+        return FileResponse(root_p)
+    # Fallback to index.html
+    index_p = os.path.join(PUBLIC_DIR, "index.html")
+    if os.path.exists(index_p):
+        return FileResponse(index_p)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 if __name__ == "__main__":
