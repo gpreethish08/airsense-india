@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirSense India - Live AQI & Pollution Index Dashboard</title>
+  <meta name="description" content="College Python Project by Preethish: Live AQI monitoring, CPCB sub-index calculator, multi-city analysis, and ML forecasting.">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for India Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-custom py-2">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand d-flex align-items-center gap-2 text-white fw-bold" href="#">
+        <i class="fa-solid fa-wind text-primary fs-3"></i>
+        <span>AirSense India</span>
+        <span class="brand-badge ms-2">Preethish's Project</span>
+      </a>
+
+      <button class="navbar-toggler text-white border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto align-items-center gap-3">
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#dashboardSection"><i class="fa-solid fa-gauge me-1"></i> Live AQI</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#calculatorSection"><i class="fa-solid fa-calculator me-1"></i> AQI Calculator</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#cpiSection"><i class="fa-solid fa-scale-balanced me-1"></i> Pollution Index vs AQI</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#trendsSection"><i class="fa-solid fa-chart-line me-1"></i> Trends & Analytics</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#mapSection"><i class="fa-solid fa-map-location-dot me-1"></i> India Map</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-light small" href="#forecastSection"><i class="fa-solid fa-cloud-sun me-1"></i> 7-Day Forecast</a>
+          </li>
+          <li class="nav-item d-flex gap-2">
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="window.exportCityCSV()">
+              <i class="fa-solid fa-file-csv me-1"></i> CSV
+            </button>
+            <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="window.printReport()">
+              <i class="fa-solid fa-print me-1"></i> Print Report
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Threshold Alert Banner (Dynamic) -->
+  <div id="alertBanner" class="alert alert-danger mb-0 text-center rounded-0 alert-pulse d-none border-0" role="alert">
+    <div class="container d-flex align-items-center justify-content-center gap-2">
+      <i class="fa-solid fa-triangle-exclamation fs-5 text-warning"></i>
+      <span id="alertBannerText">High AQI Warning Alert</span>
+    </div>
+  </div>
+
+  <!-- Hero Header & City Picker -->
+  <header class="hero-banner">
+    <div class="container px-4">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+          <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-50 px-3 py-2 rounded-pill mb-2">
+            <i class="fa-solid fa-satellite-dish me-1"></i> Central Pollution Control Board (CPCB) Standard
+          </span>
+          <h1 class="display-6 fw-bold text-white mb-2">Real-Time Air Quality & Multi-Pollutant Index</h1>
+          <p class="text-muted mb-3">
+            Interactive monitoring dashboard covering 20+ major Indian cities, CPCB breakpoint interpolation formulas, composite chemical exposure index, and ML forecasting.
+          </p>
+
+          <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="flex-grow-1" style="max-width: 380px;">
+              <label class="form-label small text-muted mb-1"><i class="fa-solid fa-city me-1"></i> Select Monitored City:</label>
+              <select id="citySelector" class="form-select form-select-custom">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div>
+              <label class="form-label small text-muted mb-1"><i class="fa-solid fa-bell me-1"></i> Alert Threshold:</label>
+              <div class="input-group input-group-sm">
+                <input type="number" id="alertThresholdInput" class="form-control form-control-custom text-center" value="200" style="max-width: 90px;">
+                <span class="input-group-text bg-dark text-muted border-secondary border-opacity-25">AQI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="p-3 rounded-4 glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-muted small"><i class="fa-solid fa-tower-broadcast text-info me-1"></i> Active CAAQMS Station:</span>
+              <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25"><i class="fa-solid fa-circle text-success me-1" style="font-size: 0.5rem"></i> Live</span>
+            </div>
+            <h5 id="cityNameDisplay" class="fw-bold text-white mb-1">Delhi NCR</h5>
+            <div id="stationDisplay" class="text-muted small mb-3">Anand Vihar CAAQMS Station, Delhi</div>
+
+            <div class="row g-2 text-center pt-2 border-top border-secondary border-opacity-25">
+              <div class="col-4">
+                <div class="text-muted small">Temperature</div>
+                <div id="weatherTemp" class="fw-bold fs-5 text-white">24.5°C</div>
+              </div>
+              <div class="col-4 border-start border-end border-secondary border-opacity-25">
+                <div class="text-muted small">Humidity</div>
+                <div id="weatherHumidity" class="fw-bold fs-5 text-white">62%</div>
+              </div>
+              <div class="col-4">
+                <div class="text-muted small">Wind Speed</div>
+                <div id="weatherWind" class="fw-bold fs-5 text-white">6.8 km/h</div>
+              </div>
+            </div>
+            <div class="text-end text-muted mt-2" style="font-size: 0.7rem;" id="stationDateDisplay">Updated Just Now</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container px-4 py-4">
+
+    <!-- Section 1: Live AQI Display & Pollution Index Side-by-Side -->
+    <section id="dashboardSection" class="mb-5">
+      <div class="row g-4 align-items-stretch">
+        
+        <!-- Left: AQI Main Dial -->
+        <div class="col-lg-5">
+          <div class="glass-card p-4 h-100 text-center d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="card-title-custom"><i class="fa-solid fa-gauge-high text-primary"></i> Current AQI</span>
+                <span class="badge bg-dark text-muted border border-secondary border-opacity-25">CPCB Standard</span>
+              </div>
+
+              <!-- Circular AQI Badge -->
+              <div id="aqiCircleBadge" class="aqi-circle-badge my-3">
+                <span id="aqiDisplayValue" class="aqi-circle-value">--</span>
+                <span class="aqi-circle-label">AQI Score</span>
+              </div>
+
+              <div class="my-2">
+                <span id="aqiCategoryBadge" class="badge px-3 py-2 fs-6 rounded-pill">Good</span>
+              </div>
+              <p id="aqiDescription" class="text-muted small px-3 mt-2">Loading air quality assessment...</p>
+            </div>
+
+            <div class="mt-3 pt-3 border-top border-secondary border-opacity-25">
+              <div id="dominantPollutantBadge" class="badge bg-primary bg-opacity-20 text-info border border-info border-opacity-25 py-2 px-3 w-100 text-truncate">
+                Dominant: Calculating...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Pollution Index vs AQI Comparison (Core Feature 3) -->
+        <div class="col-lg-7" id="cpiSection">
+          <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="card-title-custom"><i class="fa-solid fa-scale-balanced text-warning"></i> Pollution Index vs. AQI</span>
+                <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-25">Side-by-Side Analysis</span>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <div class="p-3 rounded-3" style="background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3)">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-primary fw-bold small">CPCB AQI Metric</span>
+                      <i class="fa-solid fa-bolt text-primary"></i>
+                    </div>
+                    <div class="fs-6 text-muted mb-1">Standard Worst-Pollutant Scale</div>
+                    <div class="small text-light">Flags the <b>single highest sub-index</b> to warn of acute, immediate health hazard from peak exposure.</div>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3)">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="text-warning fw-bold small">Composite Pollution Index</span>
+                      <i class="fa-solid fa-vial-virus text-warning"></i>
+                    </div>
+                    <div class="fs-6 text-muted mb-1">Score: <b id="cpiValue" class="text-white">--</b> (<span id="cpiStatusBadge" class="badge">--</span>)</div>
+                    <div class="small text-light">A <b>weighted multi-pollutant cocktail score</b> tracking cumulative chemical load across all gases & particles.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25">
+                <div class="fw-bold text-white small mb-1"><i class="fa-solid fa-circle-info text-info me-1"></i> Analytical Comparison:</div>
+                <p id="cpiRatioDesc" class="text-muted small mb-0">
+                  AQI identifies immediate danger driven by the dominant pollutant, while CPI calculates cumulative multi-pollutant exposure based on national ambient air quality standards (NAAQS).
+                </p>
+              </div>
+            </div>
+
+            <!-- CPCB Color Scale Guide Legend -->
+            <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+              <div class="text-muted small mb-2 fw-semibold">CPCB AQI Category Spectrum:</div>
+              <div class="d-flex flex-wrap gap-1">
+                <span class="badge bg-good py-1 px-2" style="font-size: 0.7rem">0-50 Good</span>
+                <span class="badge bg-satisfactory py-1 px-2" style="font-size: 0.7rem">51-100 Satisfactory</span>
+                <span class="badge bg-moderate py-1 px-2" style="font-size: 0.7rem">101-200 Moderate</span>
+                <span class="badge bg-poor py-1 px-2" style="font-size: 0.7rem">201-300 Poor</span>
+                <span class="badge bg-verypoor py-1 px-2" style="font-size: 0.7rem">301-400 Very Poor</span>
+                <span class="badge bg-severe py-1 px-2" style="font-size: 0.7rem">401-500 Severe</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Pollutants Grid (Core Feature 1) -->
+    <section class="mb-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="card-title-custom mb-0"><i class="fa-solid fa-cubes-stacked text-primary"></i> Pollutant Concentrations & Sub-Indices</h4>
+        <span class="text-muted small">Real-time Sensor Telemetry</span>
+      </div>
+      <div id="pollutantCardsContainer" class="row">
+        <!-- Dynamically rendered pollutant cards -->
+      </div>
+    </section>
+
+    <!-- Health Advice (Core Feature 5) -->
+    <section class="mb-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="card-title-custom mb-0"><i class="fa-solid fa-heart-pulse text-danger"></i> Health Advice & Clinical Precautions</h4>
+        <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-25">Dynamic Advisory</span>
+      </div>
+      <div id="healthAdviceContainer">
+        <!-- Dynamically rendered -->
+      </div>
+    </section>
+
+    <!-- Interactive India Map View (Core Feature 6) -->
+    <section id="mapSection" class="mb-5">
+      <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h4 class="card-title-custom mb-1"><i class="fa-solid fa-map-location-dot text-success"></i> Interactive India AQI Map</h4>
+            <div class="text-muted small">Click any colored station circle to view city metrics and switch dashboard.</div>
+          </div>
+          <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">20 Major Cities Monitored</span>
+        </div>
+        <div id="indiaMap"></div>
+      </div>
+    </section>
+
+    <!-- Trends and Analytics Charts (Core Feature 4) -->
+    <section id="trendsSection" class="mb-5">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="card-title-custom mb-0"><i class="fa-solid fa-chart-line text-info"></i> Trends, Diurnal Cycles & Seasonal Patterns</h4>
+        <span class="text-muted small">Multi-temporal Analysis</span>
+      </div>
+
+      <div class="row g-4">
+        <!-- 24-hr Diurnal Hourly Trend -->
+        <div class="col-lg-6">
+          <div class="glass-card p-4 h-100">
+            <h5 class="card-title-custom mb-2"><i class="fa-solid fa-clock text-primary"></i> 24-Hour Diurnal AQI Trend</h5>
+            <p class="text-muted small mb-3">Tracks rush-hour emission peaks (8 AM & 7 PM) and night-time surface temperature inversion.</p>
+            <div style="height: 280px;">
+              <canvas id="hourlyTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-City Comparison Chart -->
+        <div class="col-lg-6">
+          <div class="glass-card p-4 h-100">
+            <h5 class="card-title-custom mb-2"><i class="fa-solid fa-chart-simple text-warning"></i> Multi-City AQI Comparison</h5>
+            <p class="text-muted small mb-3">Compares metropolitan regions across North, South, and Coastal India.</p>
+            <div style="height: 280px;">
+              <canvas id="cityComparisonChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seasonal Pattern Chart -->
+        <div class="col-12">
+          <div class="glass-card p-4">
+            <h5 class="card-title-custom mb-2"><i class="fa-solid fa-calendar-week text-danger"></i> Seasonal Air Quality Trends</h5>
+            <p class="text-muted small mb-3">
+              Illustrates the severe <b>winter spike in North India</b> (driven by stubble burning, thermal inversion, and low wind speed) vs. the coastal cleansing effect in Mumbai and Bengaluru.
+            </p>
+            <div style="height: 280px;">
+              <canvas id="seasonalPatternChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AQI Calculator (Core Feature 2) -->
+    <section id="calculatorSection" class="mb-5">
+      <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h4 class="card-title-custom mb-1"><i class="fa-solid fa-calculator text-primary"></i> CPCB Sub-Index AQI Calculator</h4>
+            <p class="text-muted small mb-0">Enter custom pollutant concentrations to compute the exact sub-indices and overall AQI using official Indian CPCB formula.</p>
+          </div>
+          <span class="badge bg-primary bg-opacity-20 text-info border border-info border-opacity-25">Linear Interpolation</span>
+        </div>
+
+        <!-- Presets Buttons -->
+        <div class="mb-4">
+          <span class="text-muted small me-2">Load Preset Scenario:</span>
+          <button class="btn btn-sm btn-outline-success me-1 rounded-pill" onclick="loadCalcPreset('clean')">Clean Green Day</button>
+          <button class="btn btn-sm btn-outline-warning me-1 rounded-pill" onclick="loadCalcPreset('moderate')">Bengaluru Spring</button>
+          <button class="btn btn-sm btn-outline-danger me-1 rounded-pill" onclick="loadCalcPreset('delhi_severe')">Delhi Severe Smog</button>
+          <button class="btn btn-sm btn-outline-info rounded-pill" onclick="loadCalcPreset('industrial_so2')">Industrial SO₂ Spike</button>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-3 col-sm-6">
+            <label class="form-label small text-muted">PM2.5 (µg/m³)</label>
+            <input type="number" id="calc_pm25" class="form-control form-control-custom" placeholder="e.g. 85">
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label class="form-label small text-muted">PM10 (µg/m³)</label>
+            <input type="number" id="calc_pm10" class="form-control form-control-custom" placeholder="e.g. 150">
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label class="form-label small text-muted">NO₂ (µg/m³)</label>
+            <input type="number" id="calc_no2" class="form-control form-control-custom" placeholder="e.g. 60">
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label class="form-label small text-muted">SO₂ (µg/m³)</label>
+            <input type="number" id="calc_so2" class="form-control form-control-custom" placeholder="e.g. 25">
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <label class="form-label small text-muted">CO (mg/m³)</label>
+            <input type="number" id="calc_co" step="0.1" class="form-control form-control-custom" placeholder="e.g. 1.8">
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <label class="form-label small text-muted">O₃ (µg/m³)</label>
+            <input type="number" id="calc_o3" class="form-control form-control-custom" placeholder="e.g. 40">
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <label class="form-label small text-muted">NH₃ (µg/m³)</label>
+            <input type="number" id="calc_nh3" class="form-control form-control-custom" placeholder="e.g. 28">
+          </div>
+        </div>
+
+        <div class="mt-4 text-center">
+          <button id="btnComputeAQI" class="btn btn-primary px-5 py-2 rounded-pill fw-bold">
+            <i class="fa-solid fa-play me-2"></i> Compute CPCB AQI & Sub-Indices
+          </button>
+        </div>
+
+        <!-- Calculator Result Box (Shows upon computing) -->
+        <div id="calcResultsBox" class="mt-4 p-4 rounded-3 glass-card border border-primary border-opacity-50 d-none">
+          <div class="row align-items-center mb-4">
+            <div class="col-md-4 text-center border-end border-secondary border-opacity-25">
+              <span class="text-muted small text-uppercase">Computed AQI</span>
+              <div id="calcResultAqi" class="display-4 fw-bold text-white my-1">--</div>
+              <span id="calcResultCat" class="badge px-3 py-1 fs-6 rounded-pill">--</span>
+            </div>
+            <div class="col-md-4 text-center border-end border-secondary border-opacity-25">
+              <span class="text-muted small text-uppercase">Dominant Pollutant</span>
+              <div id="calcResultDominant" class="fs-2 fw-bold text-info my-1">--</div>
+              <span class="text-muted small">Dictates overall public health alert</span>
+            </div>
+            <div class="col-md-4 text-center">
+              <span class="text-muted small text-uppercase">Composite Pollution Index</span>
+              <div id="calcResultCPI" class="fs-2 fw-bold text-warning my-1">--</div>
+              <span class="text-muted small">Multi-pollutant weighted load</span>
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-white mb-2"><i class="fa-solid fa-square-root-variable text-info me-2"></i> Step-by-Step CPCB Mathematical Breakdown:</h6>
+          <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm align-middle">
+              <thead>
+                <tr class="text-muted small">
+                  <th>Pollutant</th>
+                  <th>Input Value</th>
+                  <th>Breakpoint [B_lo - B_hi]</th>
+                  <th>AQI Scale [I_lo - I_hi]</th>
+                  <th>CPCB Linear Formula</th>
+                  <th>Sub-Index</th>
+                </tr>
+              </thead>
+              <tbody id="calcStepsTableBody">
+                <!-- Dynamically populated steps -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 7-Day ML Forecast (Extra Feature for Higher Marks) -->
+    <section id="forecastSection" class="mb-5">
+      <div class="glass-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h4 class="card-title-custom mb-1"><i class="fa-solid fa-brain text-warning"></i> 7-Day Machine Learning AQI Forecast</h4>
+            <div class="text-muted small">Trained on meteorological parameters (wind speed, inversion, humidity) and historical lag patterns.</div>
+          </div>
+          <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-25">Random Forest / Time Series</span>
+        </div>
+
+        <div id="forecastCardsContainer" class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-3">
+          <!-- Dynamically populated forecast cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Details & Viva Reference -->
+    <section class="glass-card p-4 mb-4">
+      <h5 class="card-title-custom mb-3"><i class="fa-solid fa-graduation-cap text-primary"></i> Academic Project Reference & Viva Notes</h5>
+      <div class="row g-3 text-muted small">
+        <div class="col-md-4">
+          <div class="p-3 rounded bg-dark bg-opacity-40 border border-secondary border-opacity-25 h-100">
+            <strong class="text-white d-block mb-1">CPCB Sub-Index Formula:</strong>
+            <code>I_p = [ (I_hi - I_lo) / (B_hi - B_lo) ] × (C_p - B_lo) + I_lo</code>
+            <p class="mt-2 mb-0">Linear interpolation across official CPCB breakpoint brackets. Minimum 3 pollutants with PM2.5 or PM10 required.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded bg-dark bg-opacity-40 border border-secondary border-opacity-25 h-100">
+            <strong class="text-white d-block mb-1">AQI vs. Pollution Index (CPI):</strong>
+            <p class="mb-0">AQI is a single-pollutant maximum metric designed for urgent public safety alerts. CPI is a weighted sum evaluating chronic multi-pollutant exposure risk.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded bg-dark bg-opacity-40 border border-secondary border-opacity-25 h-100">
+            <strong class="text-white d-block mb-1">Winter Spikes in North India:</strong>
+            <p class="mb-0">Driven by post-monsoon crop residue burning, shallow boundary layer temperature inversions, and calm wind stagnation in the Indo-Gangetic Plain.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-4 border-top border-secondary border-opacity-25 text-center text-muted small">
+    <div class="container">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <b>AirSense India</b> &copy; 2026 | College Python Project by <b>Preethish</b>
+        </div>
+        <div>
+          <span>Central Pollution Control Board Standards</span> &bull; 
+          <span>FastAPI & Vercel Serverless Architecture</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Application JS -->
+  <script src="js/app.js"></script>
+</body>
+</html>
