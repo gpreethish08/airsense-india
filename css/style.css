@@ -1,0 +1,243 @@
+/* AirSense India - Modern Glassmorphic Dark/Light Hybrid Theme */
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-main: #0b1120;
+  --bg-card: #151e32;
+  --bg-card-hover: #1c2742;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --aqi-good: #10b981;
+  --aqi-satisfactory: #84cc16;
+  --aqi-moderate: #f59e0b;
+  --aqi-poor: #f97316;
+  --aqi-verypoor: #ef4444;
+  --aqi-severe: #7c3aed;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Glassmorphic Navbar */
+.navbar-custom {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1050;
+}
+
+.brand-badge {
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* Modern Glass Cards */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.card-title-custom {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hero Section */
+.hero-banner {
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 50%);
+  padding: 2.5rem 0 1.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Big AQI Display Gauge */
+.aqi-circle-badge {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.5);
+  margin: 0 auto;
+  position: relative;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.4s ease;
+}
+
+.aqi-circle-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.aqi-circle-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Pollutant Cards Grid */
+.pollutant-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.pollutant-card:hover {
+  background: rgba(30, 41, 59, 0.9);
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.pollutant-val {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.pollutant-unit {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Nav tabs */
+.nav-pills-custom .nav-link {
+  color: var(--text-muted);
+  border-radius: 10px;
+  padding: 8px 18px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-pills-custom .nav-link.active {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* Leaflet Map */
+#indiaMap {
+  height: 520px;
+  width: 100%;
+  border-radius: 14px;
+  z-index: 10;
+}
+
+/* Custom Leaflet Map Dark Mode Styling */
+.leaflet-tile {
+  filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+/* Forecast Card */
+.forecast-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.forecast-card:hover {
+  transform: translateY(-4px);
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Category colors */
+.bg-good { background-color: var(--aqi-good) !important; color: white !important; }
+.bg-satisfactory { background-color: var(--aqi-satisfactory) !important; color: #111 !important; }
+.bg-moderate { background-color: var(--aqi-moderate) !important; color: #111 !important; }
+.bg-poor { background-color: var(--aqi-poor) !important; color: white !important; }
+.bg-verypoor { background-color: var(--aqi-verypoor) !important; color: white !important; }
+.bg-severe { background-color: var(--aqi-severe) !important; color: white !important; }
+
+.text-good { color: var(--aqi-good) !important; }
+.text-satisfactory { color: var(--aqi-satisfactory) !important; }
+.text-moderate { color: var(--aqi-moderate) !important; }
+.text-poor { color: var(--aqi-poor) !important; }
+.text-verypoor { color: var(--aqi-verypoor) !important; }
+.text-severe { color: var(--aqi-severe) !important; }
+
+/* Custom Form Controls */
+.form-control-custom, .form-select-custom {
+  background-color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.form-control-custom:focus, .form-select-custom:focus {
+  background-color: #0f172a;
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* Sub-index calculation step box */
+.calc-step-box {
+  background: rgba(15, 23, 42, 0.6);
+  border-left: 4px solid var(--primary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+}
+
+/* Pulse alert animation */
+@keyframes pulseAlert {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.alert-pulse {
+  animation: pulseAlert 2.5s infinite;
+}
+
+/* Print styles for downloadable PDF */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  .navbar-custom, .btn, .no-print {
+    display: none !important;
+  }
+  .glass-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+  }
+}
