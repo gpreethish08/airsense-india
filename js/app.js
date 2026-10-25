@@ -1,10 +1,10 @@
 /**
  * AirSense India - Web Application Client Logic
  * Author: Preethish (College Project)
- * Real-time CPCB Sub-Index AQI, Interactive India Map, and CPCB Calculator
+ * Real-time CPCB & IQAir AQI monitoring, Major Air Pollutants, Air Quality Calendar & CPCB Calculator
  */
 
-// Official CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
+// CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
 const CPCB_BREAKPOINTS = {
   pm25: [
     [0.0, 30.0, 0, 50],
@@ -64,574 +64,841 @@ const CPCB_BREAKPOINTS = {
   ]
 };
 
-const POLLUTANT_NAMES = {
-  pm25: "PM2.5",
-  pm10: "PM10",
-  no2: "NO₂",
-  so2: "SO₂",
-  co: "CO",
-  o3: "O₃",
-  nh3: "NH₃"
-};
-
-const POLLUTANT_UNITS = {
-  pm25: "µg/m³",
-  pm10: "µg/m³",
-  no2: "µg/m³",
-  so2: "µg/m³",
-  co: "mg/m³",
-  o3: "µg/m³",
-  nh3: "µg/m³"
-};
-
-// 20 Indian Cities CAAQMS Dataset with real coordinates
-const INDIAN_CITIES_DATA = [
-  { id: "delhi", name: "Delhi NCR", state: "Delhi", lat: 28.6139, lon: 77.2090, pollutants: { pm25: 172.0, pm10: 275.0, no2: 74.0, so2: 19.0, co: 2.8, o3: 44.0, nh3: 38.0 }, station: "Anand Vihar CAAQMS Station, Delhi", temp: 24.5, humidity: 62, wind: 6.8 },
-  { id: "mumbai", name: "Mumbai", state: "Maharashtra", lat: 19.0760, lon: 72.8777, pollutants: { pm25: 68.0, pm10: 118.0, no2: 44.0, so2: 15.0, co: 1.2, o3: 28.0, nh3: 19.0 }, station: "BKC Bandra CAAQMS Station, Mumbai", temp: 30.2, humidity: 78, wind: 14.5 },
-  { id: "bengaluru", name: "Bengaluru", state: "Karnataka", lat: 12.9716, lon: 77.5946, pollutants: { pm25: 38.0, pm10: 62.0, no2: 26.0, so2: 8.0, co: 0.8, o3: 22.0, nh3: 12.0 }, station: "Hebbal CAAQMS Station, Bengaluru", temp: 23.0, humidity: 55, wind: 11.2 },
-  { id: "kolkata", name: "Kolkata", state: "West Bengal", lat: 22.5726, lon: 88.3639, pollutants: { pm25: 128.0, pm10: 195.0, no2: 58.0, so2: 22.0, co: 1.9, o3: 36.0, nh3: 28.0 }, station: "Victoria Memorial CAAQMS, Kolkata", temp: 27.8, humidity: 70, wind: 7.5 },
-  { id: "chennai", name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lon: 80.2707, pollutants: { pm25: 48.0, pm10: 76.0, no2: 28.0, so2: 12.0, co: 0.9, o3: 24.0, nh3: 15.0 }, station: "Velachery CAAQMS Station, Chennai", temp: 31.4, humidity: 74, wind: 16.0 },
-  { id: "hyderabad", name: "Hyderabad", state: "Telangana", lat: 17.3850, lon: 78.4867, pollutants: { pm25: 58.0, pm10: 98.0, no2: 38.0, so2: 11.0, co: 1.1, o3: 32.0, nh3: 20.0 }, station: "Sanathnagar CAAQMS, Hyderabad", temp: 28.5, humidity: 52, wind: 9.4 },
-  { id: "ahmedabad", name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lon: 72.5714, pollutants: { pm25: 94.0, pm10: 164.0, no2: 49.0, so2: 24.0, co: 1.6, o3: 39.0, nh3: 25.0 }, station: "Maninagar CAAQMS Station, Ahmedabad", temp: 31.0, humidity: 44, wind: 8.1 },
-  { id: "pune", name: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, pollutants: { pm25: 54.0, pm10: 88.0, no2: 32.0, so2: 14.0, co: 1.0, o3: 26.0, nh3: 16.0 }, station: "Shivajinagar CAAQMS, Pune", temp: 26.2, humidity: 58, wind: 10.3 },
-  { id: "lucknow", name: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lon: 80.9462, pollutants: { pm25: 178.0, pm10: 284.0, no2: 66.0, so2: 21.0, co: 2.6, o3: 44.0, nh3: 42.0 }, station: "Talkatora CAAQMS Station, Lucknow", temp: 23.8, humidity: 65, wind: 5.4 },
-  { id: "jaipur", name: "Jaipur", state: "Rajasthan", lat: 26.9124, lon: 75.7873, pollutants: { pm25: 112.0, pm10: 210.0, no2: 51.0, so2: 19.0, co: 1.8, o3: 38.0, nh3: 31.0 }, station: "Adarsh Nagar CAAQMS, Jaipur", temp: 28.0, humidity: 38, wind: 7.2 },
-  { id: "patna", name: "Patna", state: "Bihar", lat: 25.5941, lon: 85.1376, pollutants: { pm25: 185.0, pm10: 295.0, no2: 69.0, so2: 26.0, co: 2.9, o3: 45.0, nh3: 46.0 }, station: "Samarpal CAAQMS Station, Patna", temp: 25.0, humidity: 68, wind: 4.9 },
-  { id: "kanpur", name: "Kanpur", state: "Uttar Pradesh", lat: 26.4499, lon: 80.3319, pollutants: { pm25: 162.0, pm10: 268.0, no2: 63.0, so2: 20.0, co: 2.5, o3: 41.0, nh3: 39.0 }, station: "Nehru Nagar CAAQMS Station, Kanpur", temp: 24.1, humidity: 64, wind: 5.8 },
-  { id: "varanasi", name: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lon: 82.9739, pollutants: { pm25: 145.0, pm10: 235.0, no2: 55.0, so2: 18.0, co: 2.1, o3: 37.0, nh3: 34.0 }, station: "BHU CAAQMS Station, Varanasi", temp: 25.6, humidity: 63, wind: 6.1 },
-  { id: "chandigarh", name: "Chandigarh", state: "Punjab / Haryana", lat: 30.7333, lon: 76.7794, pollutants: { pm25: 82.0, pm10: 138.0, no2: 36.0, so2: 12.0, co: 1.3, o3: 30.0, nh3: 22.0 }, station: "Sector 22 CAAQMS Station, Chandigarh", temp: 22.4, humidity: 58, wind: 8.7 },
-  { id: "visakhapatnam", name: "Visakhapatnam", state: "Andhra Pradesh", lat: 17.6868, lon: 83.2185, pollutants: { pm25: 44.0, pm10: 72.0, no2: 29.0, so2: 17.0, co: 0.9, o3: 21.0, nh3: 14.0 }, station: "Gajuwaka CAAQMS, Visakhapatnam", temp: 29.8, humidity: 76, wind: 15.2 },
-  { id: "surat", name: "Surat", state: "Gujarat", lat: 21.1702, lon: 72.8311, pollutants: { pm25: 78.0, pm10: 132.0, no2: 42.0, so2: 21.0, co: 1.4, o3: 31.0, nh3: 23.0 }, station: "SVNIT CAAQMS, Surat", temp: 30.5, humidity: 66, wind: 11.5 },
-  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, pollutants: { pm25: 66.0, pm10: 115.0, no2: 34.0, so2: 13.0, co: 1.1, o3: 27.0, nh3: 18.0 }, station: "Paryavaran Parisar, Bhopal", temp: 27.2, humidity: 49, wind: 9.0 },
-  { id: "indore", name: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, pollutants: { pm25: 72.0, pm10: 124.0, no2: 37.0, so2: 15.0, co: 1.3, o3: 29.0, nh3: 20.0 }, station: "Chhoti Gwaltoli CAAQMS, Indore", temp: 27.6, humidity: 47, wind: 9.8 },
-  { id: "kochi", name: "Kochi", state: "Kerala", lat: 9.9312, lon: 76.2673, pollutants: { pm25: 32.0, pm10: 52.0, no2: 19.0, so2: 7.0, co: 0.6, o3: 18.0, nh3: 11.0 }, station: "Vyttila CAAQMS Station, Kochi", temp: 29.0, humidity: 82, wind: 13.8 },
-  { id: "guwahati", name: "Guwahati", state: "Assam", lat: 26.1445, lon: 91.7362, pollutants: { pm25: 88.0, pm10: 142.0, no2: 31.0, so2: 11.0, co: 1.2, o3: 25.0, nh3: 17.0 }, station: "Railway Colony CAAQMS, Guwahati", temp: 24.8, humidity: 72, wind: 6.4 }
+// 20 Major Indian Cities Baseline Telemetry
+const INDIAN_CITIES_LIST = [
+  { id: "delhi", name: "Delhi NCR", state: "Delhi", lat: 28.6139, lon: 77.2090, aqi: 166, cat: "Unhealthy", pm25: 78, pm10: 159, co: 2661, so2: 5, no2: 3, o3: 4, rank: 74, temp: 34.0, humidity: 17, wind: 10.4, station: "Anand Vihar CAAQMS Station" },
+  { id: "mumbai", name: "Mumbai", state: "Maharashtra", lat: 19.0760, lon: 72.8777, aqi: 118, cat: "Poor", pm25: 68, pm10: 118, co: 1200, so2: 15, no2: 44, o3: 28, rank: 98, temp: 30.2, humidity: 78, wind: 14.5, station: "BKC Bandra CAAQMS Station" },
+  { id: "bengaluru", name: "Bengaluru", state: "Karnataka", lat: 12.9716, lon: 77.5946, aqi: 62, cat: "Moderate", pm25: 38, pm10: 62, co: 800, so2: 8, no2: 26, o3: 22, rank: 145, temp: 23.0, humidity: 55, wind: 11.2, station: "Hebbal CAAQMS Station" },
+  { id: "kolkata", name: "Kolkata", state: "West Bengal", lat: 22.5726, lon: 88.3639, aqi: 155, cat: "Poor", pm25: 128, pm10: 195, co: 1900, so2: 22, no2: 58, o3: 36, rank: 82, temp: 27.8, humidity: 70, wind: 7.5, station: "Victoria Memorial CAAQMS" },
+  { id: "chennai", name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lon: 80.2707, aqi: 76, cat: "Moderate", pm25: 48, pm10: 76, co: 900, so2: 12, no2: 28, o3: 24, rank: 132, temp: 31.4, humidity: 74, wind: 16.0, station: "Velachery CAAQMS Station" },
+  { id: "hyderabad", name: "Hyderabad", state: "Telangana", lat: 17.3850, lon: 78.4867, aqi: 98, cat: "Moderate", pm25: 58, pm10: 98, co: 1100, so2: 11, no2: 38, o3: 32, rank: 115, temp: 28.5, humidity: 52, wind: 9.4, station: "Sanathnagar CAAQMS" },
+  { id: "ahmedabad", name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lon: 72.5714, aqi: 142, cat: "Poor", pm25: 94, pm10: 164, co: 1600, so2: 24, no2: 49, o3: 39, rank: 89, temp: 31.0, humidity: 44, wind: 8.1, station: "Maninagar CAAQMS Station" },
+  { id: "pune", name: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, aqi: 88, cat: "Moderate", pm25: 54, pm10: 88, co: 1000, so2: 14, no2: 32, o3: 26, rank: 124, temp: 26.2, humidity: 58, wind: 10.3, station: "Shivajinagar CAAQMS" },
+  { id: "lucknow", name: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lon: 80.9462, aqi: 184, cat: "Unhealthy", pm25: 178, pm10: 284, co: 2600, so2: 21, no2: 66, o3: 44, rank: 68, temp: 23.8, humidity: 65, wind: 5.4, station: "Talkatora CAAQMS Station" },
+  { id: "jaipur", name: "Jaipur", state: "Rajasthan", lat: 26.9124, lon: 75.7873, aqi: 148, cat: "Poor", pm25: 112, pm10: 210, co: 1800, so2: 19, no2: 51, o3: 38, rank: 85, temp: 28.0, humidity: 38, wind: 7.2, station: "Adarsh Nagar CAAQMS" },
+  { id: "patna", name: "Patna", state: "Bihar", lat: 25.5941, lon: 85.1376, aqi: 195, cat: "Unhealthy", pm25: 185, pm10: 295, co: 2900, so2: 26, no2: 69, o3: 45, rank: 62, temp: 25.0, humidity: 68, wind: 4.9, station: "Samarpal CAAQMS Station" },
+  { id: "kanpur", name: "Kanpur", state: "Uttar Pradesh", lat: 26.4499, lon: 80.3319, aqi: 178, cat: "Unhealthy", pm25: 162, pm10: 268, co: 2500, so2: 20, no2: 63, o3: 41, rank: 71, temp: 24.1, humidity: 64, wind: 5.8, station: "Nehru Nagar CAAQMS Station" },
+  { id: "varanasi", name: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lon: 82.9739, aqi: 164, cat: "Unhealthy", pm25: 145, pm10: 235, co: 2100, so2: 18, no2: 55, o3: 37, rank: 76, temp: 25.6, humidity: 63, wind: 6.1, station: "BHU CAAQMS Station" },
+  { id: "chandigarh", name: "Chandigarh", state: "Punjab", lat: 30.7333, lon: 76.7794, aqi: 110, cat: "Poor", pm25: 82, pm10: 138, co: 1300, so2: 12, no2: 36, o3: 30, rank: 104, temp: 22.4, humidity: 58, wind: 8.7, station: "Sector 22 CAAQMS Station" },
+  { id: "visakhapatnam", name: "Visakhapatnam", state: "Andhra Pradesh", lat: 17.6868, lon: 83.2185, aqi: 72, cat: "Moderate", pm25: 44, pm10: 72, co: 900, so2: 17, no2: 29, o3: 21, rank: 138, temp: 29.8, humidity: 76, wind: 15.2, station: "Gajuwaka CAAQMS" },
+  { id: "surat", name: "Surat", state: "Gujarat", lat: 21.1702, lon: 72.8311, aqi: 125, cat: "Poor", pm25: 78, pm10: 132, co: 1400, so2: 21, no2: 42, o3: 31, rank: 94, temp: 30.5, humidity: 66, wind: 11.5, station: "SVNIT CAAQMS" },
+  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, aqi: 92, cat: "Moderate", pm25: 66, pm10: 115, co: 1100, so2: 13, no2: 34, o3: 27, rank: 120, temp: 27.2, humidity: 49, wind: 9.0, station: "Paryavaran Parisar" },
+  { id: "indore", name: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, aqi: 98, cat: "Moderate", pm25: 72, pm10: 124, co: 1300, so2: 15, no2: 37, o3: 29, rank: 116, temp: 27.6, humidity: 47, wind: 9.8, station: "Chhoti Gwaltoli CAAQMS" },
+  { id: "kochi", name: "Kochi", state: "Kerala", lat: 9.9312, lon: 76.2673, aqi: 45, cat: "Good", pm25: 32, pm10: 52, co: 600, so2: 7, no2: 19, o3: 18, rank: 185, temp: 29.0, humidity: 82, wind: 13.8, station: "Vyttila CAAQMS Station" },
+  { id: "guwahati", name: "Guwahati", state: "Assam", lat: 26.1445, lon: 91.7362, aqi: 115, cat: "Poor", pm25: 88, pm10: 142, co: 1200, so2: 11, no2: 31, o3: 25, rank: 101, temp: 24.8, humidity: 72, wind: 6.4, station: "Railway Colony CAAQMS" }
 ];
 
-// CPCB Sub-Index Calculation
-function computeSubIndex(pollutant, concentration) {
-  const p = pollutant.toLowerCase().replace(".", "");
-  const ranges = CPCB_BREAKPOINTS[p];
-  if (!ranges || concentration === null || isNaN(concentration) || concentration < 0) return null;
-
-  let matched = null;
-  for (const [b_lo, b_hi, i_lo, i_hi] of ranges) {
-    if (concentration >= b_lo && concentration <= b_hi) {
-      matched = [b_lo, b_hi, i_lo, i_hi];
-      break;
-    }
-  }
-
-  if (!matched) {
-    if (concentration > ranges[ranges.length - 1][1]) {
-      matched = ranges[ranges.length - 1];
-    } else {
-      return null;
-    }
-  }
-
-  const [b_lo, b_hi, i_lo, i_hi] = matched;
-  const subIndex = ((i_hi - i_lo) / (b_hi - b_lo)) * (concentration - b_lo) + i_lo;
-  const rounded = Math.min(500, Math.max(0, Math.round(subIndex)));
-
-  return {
-    pollutant: POLLUTANT_NAMES[p] || pollutant,
-    concentration: concentration,
-    unit: POLLUTANT_UNITS[p] || "µg/m³",
-    b_lo, b_hi, i_lo, i_hi,
-    sub_index: rounded,
-    formula: `[(${i_hi} - ${i_lo}) / (${b_hi} - ${b_lo})] × (${concentration} - ${b_lo}) + ${i_lo}`
-  };
-}
-
-function getAQICategory(aqi) {
-  if (aqi <= 50) {
-    return { name: "Good", color: "#10B981", textColor: "#ffffff", desc: "Air quality is considered satisfactory, and air pollution poses little or no risk." };
-  } else if (aqi <= 100) {
-    return { name: "Satisfactory", color: "#84CC16", textColor: "#111827", desc: "Minor breathing discomfort to sensitive people." };
-  } else if (aqi <= 200) {
-    return { name: "Moderate", color: "#F59E0B", textColor: "#111827", desc: "Breathing discomfort to people with lungs, asthma and heart diseases." };
-  } else if (aqi <= 300) {
-    return { name: "Poor", color: "#F97316", textColor: "#ffffff", desc: "Breathing discomfort to most people on prolonged exposure." };
-  } else if (aqi <= 400) {
-    return { name: "Very Poor", color: "#EF4444", textColor: "#ffffff", desc: "Respiratory illness on prolonged exposure. Significant risk for elderlies and children." };
-  } else {
-    return { name: "Severe", color: "#A855F7", textColor: "#ffffff", desc: "Emergency condition. Seriously affects healthy people and severely impacts sensitive groups." };
-  }
-}
-
-function calculateOverallAQI(pollutants) {
-  let subIndices = {};
-  let breakdowns = [];
-
-  for (const [key, val] of Object.entries(pollutants)) {
-    if (val !== null && !isNaN(val)) {
-      const step = computeSubIndex(key, parseFloat(val));
-      if (step) {
-        subIndices[key] = step.sub_index;
-        breakdowns.push(step);
-      }
-    }
-  }
-
-  if (Object.keys(subIndices).length === 0) {
-    return { aqi: 0, category: "No Data", color: "#6B7280", textColor: "#fff", dominant: "None", breakdowns: [] };
-  }
-
-  let dominant = "pm25";
-  let maxAQI = -1;
-  for (const [k, v] of Object.entries(subIndices)) {
-    if (v > maxAQI) {
-      maxAQI = v;
-      dominant = k;
-    }
-  }
-
-  const category = getAQICategory(maxAQI);
-  return {
-    aqi: maxAQI,
-    category: category.name,
-    color: category.color,
-    textColor: category.textColor,
-    desc: category.desc,
-    dominant: dominant,
-    dominantName: POLLUTANT_NAMES[dominant] || dominant.toUpperCase(),
-    subIndices,
-    breakdowns
-  };
-}
-
-// Global App State
-let currentCity = INDIAN_CITIES_DATA[0];
-let leafletMap = null;
+// App State
+let currentCityId = "delhi";
+let currentYear = 2026;
+let currentStandard = "us"; // "us" or "cpcb"
+let calendarMonths = [8, 9, 10]; // August, September, October
+let mainLeafletMap = null;
+let miniLeafletMap = null;
 let mapMarkers = [];
-let alertThreshold = 200;
 
-// Initialize Web Application with Safety Guards
+// Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
-  initCitySelector();
-  initIndiaMap();
-  loadCityData("delhi");
-  initCalculatorControls();
-  initAlertControls();
+  initApiKeys();
+  initEventListeners();
+  initMaps();
+  loadCity(currentCityId);
 });
 
-// Additional window load trigger to guarantee map size rendering
-window.addEventListener("load", () => {
-  setTimeout(() => {
-    if (leafletMap) {
-      leafletMap.invalidateSize();
-    }
-  }, 250);
-});
-
-// City Selector Dropdown
-function initCitySelector() {
-  const select = document.getElementById("citySelector");
-  if (!select) return;
-
-  select.innerHTML = "";
-  INDIAN_CITIES_DATA.forEach(city => {
-    const aqiRes = calculateOverallAQI(city.pollutants);
-    const opt = document.createElement("option");
-    opt.value = city.id;
-    opt.textContent = `${city.name} (${city.state}) - AQI ${aqiRes.aqi}`;
-    select.appendChild(opt);
-  });
-
-  select.addEventListener("change", (e) => {
-    loadCityData(e.target.value);
-  });
+// Setup Stored API Keys
+function initApiKeys() {
+  const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
+  const owKey = localStorage.getItem("airsense_openweather_key") || "";
+  
+  const elIqair = document.getElementById("inputIqairKey");
+  const elOw = document.getElementById("inputOpenweatherKey");
+  if (elIqair) elIqair.value = iqairKey;
+  if (elOw) elOw.value = owKey;
 }
 
-// Load City Data: Queries Backend or falls back to local data
-async function loadCityData(cityId) {
-  let backendData = null;
+// Event Listeners
+function initEventListeners() {
+  // City Selectors
+  const navCity = document.getElementById("navCitySelector");
+  if (navCity) {
+    navCity.addEventListener("change", (e) => {
+      loadCity(e.target.value);
+    });
+  }
+
+  // Calendar Controls
+  const calYearSelect = document.getElementById("calYearSelect");
+  if (calYearSelect) {
+    calYearSelect.addEventListener("change", (e) => {
+      currentYear = parseInt(e.target.value);
+      const label = document.getElementById("calYearLabel");
+      if (label) label.textContent = currentYear;
+      renderCalendar(currentCityId, currentYear, calendarMonths);
+    });
+  }
+
+  const calStandardSelect = document.getElementById("calStandardSelect");
+  if (calStandardSelect) {
+    calStandardSelect.addEventListener("change", (e) => {
+      currentStandard = e.target.value;
+      const unitLabel = document.getElementById("heroAqiUnitLabel");
+      if (unitLabel) unitLabel.textContent = currentStandard === "us" ? "AQI (US)" : "AQI (CPCB)";
+      renderCalendar(currentCityId, currentYear, calendarMonths);
+    });
+  }
+
+  // Calculator Buttons
+  const btnCompute = document.getElementById("btnComputeAQI");
+  if (btnCompute) {
+    btnCompute.addEventListener("click", computeAqi);
+  }
+}
+
+// Load City Telemetry
+async function loadCity(cityId) {
+  currentCityId = cityId;
+
+  // Sync nav selector
+  const navCity = document.getElementById("navCitySelector");
+  if (navCity && navCity.value !== cityId) navCity.value = cityId;
+
+  const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
+  const owKey = localStorage.getItem("airsense_openweather_key") || "";
+
+  // Try fetching from FastAPI backend
   try {
-    const res = await fetch(`/api/city/${cityId}`);
+    const url = `/api/city/${cityId}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
+    const res = await fetch(url);
     if (res.ok) {
-      backendData = await res.json();
+      const data = await res.json();
+      renderHero(data);
+      renderMajorPollutants(data);
+      renderCalendar(cityId, currentYear, calendarMonths);
+      updateMapFocus(data.city_info.lat, data.city_info.lon);
+      return;
     }
   } catch (err) {
-    console.log("Backend offline, using local data service:", err);
+    console.log("Backend offline, utilizing client CAAQMS dataset:", err);
   }
 
-  if (backendData) {
-    applyCityData(backendData.city_info, backendData.aqi_data);
-  } else {
-    const city = INDIAN_CITIES_DATA.find(c => c.id === cityId) || INDIAN_CITIES_DATA[0];
-    const aqiRes = calculateOverallAQI(city.pollutants);
-    applyCityData(city, aqiRes);
-  }
+  // Fallback to local dataset (e.g. GitHub Pages static serving)
+  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
+  const mockDetails = generateClientCityData(city);
+  renderHero(mockDetails);
+  renderMajorPollutants(mockDetails);
+  renderCalendar(cityId, currentYear, calendarMonths);
+  updateMapFocus(city.lat, city.lon);
 }
 
-// Unified UI update function
-function applyCityData(info, aqi) {
-  currentCity = INDIAN_CITIES_DATA.find(c => c.id === info.id) || currentCity;
+// Generate Mock City Data for static mode
+function generateClientCityData(city) {
+  const isDelhi = city.id === "delhi";
+  const aqiVal = isDelhi ? 166 : city.aqi;
+  const pm25Val = isDelhi ? 78 : city.pm25;
+  const pm10Val = isDelhi ? 159 : city.pm10;
+  const coVal = isDelhi ? 2661 : city.co;
+  const so2Val = isDelhi ? 5 : city.so2;
+  const no2Val = isDelhi ? 3 : city.no2;
+  const o3Val = isDelhi ? 4 : city.o3;
 
-  // Header display
-  const nameEl = document.getElementById("cityNameDisplay");
-  if (nameEl) nameEl.textContent = info.name;
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (Local Time)`;
 
-  const stationEl = document.getElementById("stationDisplay");
-  if (stationEl) stationEl.textContent = info.station;
+  return {
+    city_info: {
+      id: city.id,
+      name: city.name,
+      state: city.state,
+      station: city.station,
+      lat: city.lat,
+      lon: city.lon,
+      temp: city.temp,
+      humidity: city.humidity,
+      wind_speed: city.wind,
+      description: "Partly Cloudy",
+      uv_index: 1.5,
+      timestamp: timeStr,
+      rank: city.rank,
+      rank_text: `Currently, ${city.name} ranks ${city.rank}th among the most polluted cities globally.`
+    },
+    aqi_data: {
+      aqi: aqiVal,
+      category: getAqiCategoryName(aqiVal),
+      color: getAqiColor(aqiVal)
+    },
+    major_pollutants: [
+      { id: "pm25", name: "Particulate Matter", symbol: "(PM2.5)", value: pm25Val, unit: "µg/m³", color: "#FF7E00", alert: false },
+      { id: "pm10", name: "Particulate Matter", symbol: "(PM10)", value: pm10Val, unit: "µg/m³", color: "#FF7E00", alert: true },
+      { id: "co", name: "Carbon Monoxide", symbol: "(CO)", value: coVal, unit: "ppb", color: "#00E400", alert: false },
+      { id: "so2", name: "Sulfur Dioxide", symbol: "(SO2)", value: so2Val, unit: "ppb", color: "#00E400", alert: false },
+      { id: "no2", name: "Nitrogen Dioxide", symbol: "(NO2)", value: no2Val, unit: "ppb", color: "#00E400", alert: false },
+      { id: "o3", name: "Ozone", symbol: "(O3)", value: o3Val, unit: "ppb", color: "#00E400", alert: false }
+    ]
+  };
+}
 
-  const dateEl = document.getElementById("stationDateDisplay");
-  if (dateEl) dateEl.textContent = info.timestamp || new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+// Render Hero Section (Photo 3)
+function renderHero(data) {
+  const info = data.city_info;
+  const aqi = data.aqi_data.aqi;
+  const cat = data.aqi_data.category;
+  const color = data.aqi_data.color;
 
-  // AQI Circle
-  const aqiBadge = document.getElementById("aqiCircleBadge");
-  const aqiVal = document.getElementById("aqiDisplayValue");
-  const aqiCat = document.getElementById("aqiCategoryBadge");
-  const aqiDesc = document.getElementById("aqiDescription");
-  const dominantBadge = document.getElementById("dominantPollutantBadge");
+  // Meta row
+  const title = document.getElementById("heroCityTitle");
+  if (title) title.textContent = `${info.name} Air Quality Index (AQI) | Air Pollution`;
 
-  const aqiScore = aqi.aqi;
-  const aqiColor = aqi.color;
-  const aqiCategoryName = aqi.category;
-  const dominantName = aqi.dominant_name || aqi.dominantName || "PM2.5";
+  const sub = document.getElementById("heroCitySubtitle");
+  if (sub) sub.textContent = `Real-time PM2.5, PM10 air pollution level in ${info.name}`;
 
-  if (aqiVal) aqiVal.textContent = aqiScore;
-  if (aqiBadge) aqiBadge.style.backgroundColor = aqiColor;
+  const time = document.getElementById("lastUpdatedTime");
+  if (time) time.textContent = info.timestamp;
+
+  // AQI Values
+  const aqiNum = document.getElementById("heroAqiNumber");
+  if (aqiNum) aqiNum.textContent = aqi;
+
+  const aqiCat = document.getElementById("heroAqiCategory");
   if (aqiCat) {
-    aqiCat.textContent = aqiCategoryName;
-    aqiCat.style.backgroundColor = aqiColor;
-    aqiCat.style.color = aqi.textColor || "#ffffff";
-  }
-  if (aqiDesc) aqiDesc.textContent = aqi.description || aqi.desc || "Monitored as per CPCB CAAQMS guidelines.";
-  if (dominantBadge) {
-    dominantBadge.textContent = `Dominant Pollutant: ${dominantName} (Sub-index: ${aqiScore})`;
+    aqiCat.textContent = cat;
+    aqiCat.style.backgroundColor = getCategoryBgColor(aqi);
+    aqiCat.style.color = getCategoryTextColor(aqi);
   }
 
-  // Weather stats
-  const tempEl = document.getElementById("weatherTemp");
-  if (tempEl) tempEl.textContent = `${info.temp}°C`;
-
-  const humEl = document.getElementById("weatherHumidity");
-  if (humEl) humEl.textContent = `${info.humidity}%`;
-
-  const windEl = document.getElementById("weatherWind");
-  if (windEl) windEl.textContent = `${info.wind_speed || info.wind || 6.5} km/h`;
-
-  // Check alert threshold
-  checkAlertThreshold(aqiScore, info.name);
-
-  // Pan Map
-  if (leafletMap && info.lat && info.lon) {
-    leafletMap.flyTo([info.lat, info.lon], 7, { duration: 1.2 });
+  // Dynamic Pastel Banner Background
+  const bannerBg = document.getElementById("heroBannerBg");
+  if (bannerBg) {
+    bannerBg.style.background = getCategoryGradient(aqi);
   }
+
+  // Pointer position on rainbow spectrum bar (0 to 500)
+  const pointer = document.getElementById("heroSpectrumPointer");
+  if (pointer) {
+    let pct = (aqi / 350) * 100;
+    pct = Math.max(2, Math.min(98, pct));
+    pointer.style.left = `${pct}%`;
+  }
+
+  // Sub pollutants in hero
+  const pm25El = document.getElementById("heroPm25");
+  const pm10El = document.getElementById("heroPm10");
+  if (pm25El) {
+    const p25 = data.major_pollutants ? data.major_pollutants.find(p => p.id === 'pm25') : null;
+    pm25El.textContent = p25 ? p25.value : (data.raw_pollutants ? Math.round(data.raw_pollutants.pm25) : 78);
+  }
+  if (pm10El) {
+    const p10 = data.major_pollutants ? data.major_pollutants.find(p => p.id === 'pm10') : null;
+    pm10El.textContent = p10 ? p10.value : (data.raw_pollutants ? Math.round(data.raw_pollutants.pm10) : 159);
+  }
+
+  // Weather Card in Hero
+  const wTemp = document.getElementById("heroWeatherTemp");
+  if (wTemp) wTemp.textContent = `${info.temp} °C`;
+
+  const wDesc = document.getElementById("heroWeatherDesc");
+  if (wDesc) wDesc.textContent = info.description || "Partly Cloudy";
+
+  const wHum = document.getElementById("heroWeatherHumidity");
+  if (wHum) wHum.textContent = `${info.humidity} %`;
+
+  const wWind = document.getElementById("heroWeatherWind");
+  if (wWind) wWind.textContent = `${info.wind_speed} km/h`;
+
+  const wUv = document.getElementById("heroWeatherUv");
+  if (wUv) wUv.textContent = `${info.uv_index || 1.5}`;
+
+  // Rank Bar
+  const rankNum = document.getElementById("heroCityRank");
+  if (rankNum) rankNum.textContent = `${info.rank}th`;
+
+  const rankText = document.getElementById("heroRankText");
+  if (rankText) rankText.textContent = info.rank_text || `Currently, ${info.name} ranks ${info.rank}th among the most polluted cities globally.`;
+
+  // Links in section headers
+  const link1 = document.getElementById("pollutantsCityLink");
+  if (link1) link1.textContent = info.name;
+
+  const link2 = document.getElementById("calCityLink");
+  if (link2) link2.textContent = info.name;
+
+  const miniName = document.getElementById("miniMapCityName");
+  if (miniName) miniName.textContent = info.name;
 }
 
-// Interactive India Map (Robust Initialization with Zero Broken Tiles)
-function initIndiaMap() {
-  const mapElement = document.getElementById("indiaMap");
-  if (!mapElement || typeof L === 'undefined') {
-    return;
-  }
+// Render Major Pollutants (Photo 1)
+function renderMajorPollutants(data) {
+  const pollutants = data.major_pollutants || [];
+  const grid = document.getElementById("majorPollutantsGrid");
+  if (!grid || !pollutants.length) return;
 
-  // Clear existing map instance if any to prevent Leaflet container re-init error
-  if (leafletMap) {
-    try {
-      leafletMap.remove();
-    } catch (e) {
-      console.warn("Map cleanup notice:", e);
-    }
-    leafletMap = null;
-  }
+  const icons = {
+    pm25: "fa-cloud",
+    pm10: "fa-cloud-meatball",
+    co: "fa-smog",
+    so2: "fa-cloud-rain",
+    no2: "fa-cloud-arrow-down",
+    o3: "fa-circle-nodes"
+  };
+
+  let html = "";
+  pollutants.forEach(p => {
+    const iconClass = icons[p.id] || "fa-cloud";
+    const alertBadge = p.alert ? `<span class="alert-dot-badge"><i class="fa-solid fa-circle-exclamation"></i></span>` : "";
+    
+    html += `
+      <div class="col-md-4 col-sm-6">
+        <div class="pollutant-card" style="--indicator-color: ${p.color};" onclick="window.populateCalculatorPollutant('${p.id}', ${p.value})">
+          ${alertBadge}
+          <div class="pollutant-left">
+            <div class="pollutant-cloud-icon">
+              <i class="fa-solid ${iconClass}"></i>
+            </div>
+            <div class="pollutant-meta">
+              <div class="pollutant-title">${p.name}</div>
+              <div class="pollutant-subtitle">${p.symbol}</div>
+            </div>
+          </div>
+          <div class="pollutant-right">
+            <div>
+              <div class="pollutant-num">${p.value}</div>
+              <div class="pollutant-unit">${p.unit}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right pollutant-chevron"></i>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  grid.innerHTML = html;
+}
+
+// Render Air Quality Calendar (Photo 2)
+async function renderCalendar(cityId, year, months) {
+  const container = document.getElementById("calendarMonthsContainer");
+  if (!container) return;
 
   try {
-    leafletMap = L.map("indiaMap", {
-      center: [22.5, 79.0],
-      zoom: 5,
-      minZoom: 4,
-      maxZoom: 12,
-      scrollWheelZoom: true
+    const res = await fetch(`/api/calendar/${cityId}?year=${year}&months=${months.join(',')}`);
+    if (res.ok) {
+      const calData = await res.json();
+      buildCalendarHtml(calData.months);
+      return;
+    }
+  } catch (e) {
+    console.log("Calendar fetch fallback to client generator:", e);
+  }
+
+  // Client-side fallback calendar generator
+  const clientMonths = generateClientCalendar(cityId, year, months);
+  buildCalendarHtml(clientMonths);
+}
+
+function buildCalendarHtml(monthsData) {
+  const container = document.getElementById("calendarMonthsContainer");
+  if (!container) return;
+
+  const weekdays = ["Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."];
+  let html = "";
+
+  monthsData.forEach(m => {
+    html += `
+      <div class="col-lg-4 col-md-6 month-calendar-block">
+        <div class="month-title-header text-center">${m.month_name}</div>
+        <div class="calendar-days-grid mb-1">
+          ${weekdays.map(w => `<div class="calendar-weekday-col">${w}</div>`).join('')}
+        </div>
+        <div class="calendar-days-grid">
+    `;
+
+    m.days.forEach(d => {
+      if (!d) {
+        html += `<div style="min-height: 48px;"></div>`;
+      } else {
+        html += `
+          <div class="cal-day-cell" title="${d.date_label}: AQI ${d.aqi} (${d.category})">
+            <div class="cal-cell-date">${d.date_label}</div>
+            <div class="cal-cell-aqi" style="background-color: ${d.color}; color: ${d.color === '#FFFF00' ? '#7A6800' : '#FFFFFF'};">
+              ${d.aqi}
+            </div>
+          </div>
+        `;
+      }
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    html += `
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// Client Calendar Generator matching Photo 2 values for Delhi
+function generateClientCalendar(cityId, year, months) {
+  const monthNames = {
+    1: "January", 2: "February", 3: "March", 4: "April",
+    5: "May", 6: "June", 7: "July", 8: "August",
+    9: "September", 10: "October", 11: "November", 12: "December"
+  };
+  const shortNames = {
+    1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.",
+    5: "May.", 6: "Jun.", 7: "Jul.", 8: "Aug.",
+    9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec."
+  };
+
+  const isDelhi = cityId.toLowerCase().includes("delhi");
+  
+  // Exact values from Photo 2 for Delhi
+  const photoValues = {
+    8: { 1: 127, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95 },
+    9: { 1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108, 9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145, 16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164, 23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144 },
+    10: { 1: 146, 2: 148, 3: 146, 4: 136, 5: 131, 6: 136, 7: 146, 8: 159, 9: 164, 10: 155, 11: 138, 12: 123, 13: 178, 14: 178, 15: 151, 16: 145, 17: 178, 18: 176, 19: 161, 20: 192, 21: 221, 22: 210, 23: 214, 24: 184 }
+  };
+
+  const results = [];
+
+  months.forEach(m => {
+    const daysInMonth = new Date(year, m, 0).getDate();
+    const firstDayIndex = new Date(year, m - 1, 1).getDay(); // 0 is Sunday
+    const daysData = [];
+
+    // Preceding empty cells
+    for (let i = 0; i < firstDayIndex; i++) {
+      daysData.push(null);
+    }
+
+    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+      let aqiVal;
+      if (isDelhi && photoValues[m] && photoValues[m][dayNum]) {
+        aqiVal = photoValues[m][dayNum];
+      } else {
+        const seed = (year * 100 + m * 31 + dayNum) % 100;
+        aqiVal = m === 8 ? (85 + seed % 45) : (m === 9 ? (100 + seed % 65) : (140 + seed % 85));
+      }
+
+      daysData.push({
+        day: dayNum,
+        date_label: `${dayNum} ${shortNames[m]}`,
+        aqi: aqiVal,
+        category: getAqiCategoryName(aqiVal),
+        color: getAqiColor(aqiVal)
+      });
+    }
+
+    results.push({
+      month: m,
+      month_name: monthNames[m],
+      days: daysData
+    });
+  });
+
+  return results;
+}
+
+// Calendar Month Shift Controls
+window.prevCalendarMonths = function() {
+  calendarMonths = calendarMonths.map(m => m <= 1 ? 12 : m - 1);
+  renderCalendar(currentCityId, currentYear, calendarMonths);
+};
+
+window.nextCalendarMonths = function() {
+  calendarMonths = calendarMonths.map(m => m >= 12 ? 1 : m + 1);
+  renderCalendar(currentCityId, currentYear, calendarMonths);
+};
+
+// Initialize Leaflet Maps
+function initMaps() {
+  // 1. Mini Map in Hero (Photo 3)
+  const miniEl = document.getElementById("miniMap");
+  if (miniEl && !miniLeafletMap) {
+    miniLeafletMap = L.map("miniMap", { zoomControl: false, attributionControl: false }).setView([28.6139, 77.2090], 11);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(miniLeafletMap);
+  }
+
+  // 2. Main India Interactive Map
+  const mapEl = document.getElementById("indiaMap");
+  if (mapEl && !mainLeafletMap) {
+    mainLeafletMap = L.map("indiaMap").setView([22.5, 79.5], 5);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
       maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
-    }).addTo(leafletMap);
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(mainLeafletMap);
 
-    mapMarkers = [];
-
-    // Add circular markers for all 20 cities
-    INDIAN_CITIES_DATA.forEach(city => {
-      const aqiRes = calculateOverallAQI(city.pollutants);
-
-      const marker = L.circleMarker([city.lat, city.lon], {
-        radius: 11,
-        fillColor: aqiRes.color,
-        color: "#ffffff",
-        weight: 2.5,
-        opacity: 1,
-        fillOpacity: 0.95
-      }).addTo(leafletMap);
-
-      // Tooltip on hover
-      marker.bindTooltip(`<b>${city.name}</b>: AQI ${aqiRes.aqi} (${aqiRes.category})`, {
-        direction: 'top',
-        offset: [0, -8],
-        className: 'custom-map-tooltip'
+    // Plot all 20 cities on map
+    INDIAN_CITIES_LIST.forEach(city => {
+      const color = getAqiColor(city.aqi);
+      const icon = L.divIcon({
+        className: "custom-map-pin",
+        html: `<div style="background-color: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer;">${city.aqi}</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
       });
 
-      // Interactive Popup
+      const marker = L.marker([city.lat, city.lon], { icon: icon }).addTo(mainLeafletMap);
       marker.bindPopup(`
-        <div style="font-family: Inter, sans-serif; min-width: 170px; padding: 4px;">
-          <h6 style="margin: 0 0 2px 0; font-weight: 700; color: #f8fafc; font-size: 0.95rem;">${city.name}</h6>
-          <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px;">${city.state}</div>
-          <div style="background: ${aqiRes.color}; color: ${aqiRes.textColor}; padding: 6px 10px; border-radius: 6px; font-weight: 700; text-align: center; margin-bottom: 8px; font-size: 0.85rem;">
-            AQI: ${aqiRes.aqi} &bull; ${aqiRes.category}
+        <div style="font-family: Inter, sans-serif; padding: 4px;">
+          <h6 style="margin: 0 0 4px 0; font-weight: 800; color: #0F172A;">${city.name}</h6>
+          <div style="font-size: 0.8rem; color: #64748B;">${city.station}</div>
+          <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+            <span style="background: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem;">AQI ${city.aqi}</span>
+            <span style="font-size: 0.8rem; font-weight: 600; color: #0F172A;">${city.cat}</span>
           </div>
-          <div style="font-size: 0.75rem; color: #cbd5e1; margin-bottom: 8px;">
-            Dominant: <strong style="color: #F59E0B;">${aqiRes.dominantName}</strong>
-          </div>
-          <button onclick="window.selectCityFromMap('${city.id}')" style="width: 100%; background: #F59E0B; color: #13091B; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
-            <i class="fa-solid fa-gauge me-1"></i> View Full Dashboard
-          </button>
+          <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View City Telemetry</button>
         </div>
       `);
 
-      mapMarkers.push(marker);
+      mapMarkers.push({ id: city.id, marker: marker });
     });
-
-    // Invalidate map size to ensure full render
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 400);
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 900);
-
-  } catch (err) {
-    console.error("Leaflet map initialization error:", err);
   }
 }
 
-// Reset Map View to default center
-window.resetMapView = function() {
-  if (leafletMap) {
-    leafletMap.setView([22.5, 79.0], 5);
-    leafletMap.invalidateSize();
-  }
-};
-
-window.selectCityFromMap = function(cityId) {
-  const select = document.getElementById("citySelector");
-  if (select) select.value = cityId;
-  loadCityData(cityId);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-// AQI Calculator Controls (Connects to Backend POST /api/calculate with Client Fallback)
-function initCalculatorControls() {
-  const calcBtn = document.getElementById("btnComputeAQI");
-  if (!calcBtn) return;
-
-  calcBtn.addEventListener("click", async () => {
-    let pm25 = parseFloat(document.getElementById("calc_pm25").value);
-    let pm10 = parseFloat(document.getElementById("calc_pm10").value);
-    let no2 = parseFloat(document.getElementById("calc_no2").value);
-    let so2 = parseFloat(document.getElementById("calc_so2").value);
-    let co = parseFloat(document.getElementById("calc_co").value);
-    let o3 = parseFloat(document.getElementById("calc_o3").value);
-    let nh3 = parseFloat(document.getElementById("calc_nh3").value);
-
-    // If inputs are blank, provide standard defaults
-    if (isNaN(pm25) && isNaN(pm10) && isNaN(no2) && isNaN(so2) && isNaN(co) && isNaN(o3) && isNaN(nh3)) {
-      document.getElementById("calc_pm25").value = 95;
-      document.getElementById("calc_pm10").value = 160;
-      document.getElementById("calc_no2").value = 52;
-      document.getElementById("calc_so2").value = 24;
-      document.getElementById("calc_co").value = 1.6;
-      document.getElementById("calc_o3").value = 42;
-      document.getElementById("calc_nh3").value = 28;
-      pm25 = 95; pm10 = 160; no2 = 52; so2 = 24; co = 1.6; o3 = 42; nh3 = 28;
-    }
-
-    const payload = {};
-    if (!isNaN(pm25)) payload.pm25 = pm25;
-    if (!isNaN(pm10)) payload.pm10 = pm10;
-    if (!isNaN(no2)) payload.no2 = no2;
-    if (!isNaN(so2)) payload.so2 = so2;
-    if (!isNaN(co)) payload.co = co;
-    if (!isNaN(o3)) payload.o3 = o3;
-    if (!isNaN(nh3)) payload.nh3 = nh3;
-
-    // Button loading state
-    const originalText = calcBtn.innerHTML;
-    calcBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i> Computing...`;
-    calcBtn.disabled = true;
-
-    let computedAqi = null;
-
-    // 1. Try FastAPI Backend
-    try {
-      const response = await fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (response.ok) {
-        const data = await response.json();
-        computedAqi = data.aqi_data;
+// Update Map Focus when city changes
+function updateMapFocus(lat, lon) {
+  if (miniLeafletMap) {
+    miniLeafletMap.setView([lat, lon], 11);
+    miniLeafletMap.eachLayer(layer => {
+      if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+        miniLeafletMap.removeLayer(layer);
       }
-    } catch (err) {
-      console.log("Backend calculation failed, using local fallback:", err);
-    }
+    });
+    // Add pulsing circle marker for active city in mini map
+    L.circleMarker([lat, lon], {
+      radius: 14,
+      fillColor: "#EF4444",
+      color: "#FFFFFF",
+      weight: 3,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(miniLeafletMap);
+  }
 
-    // 2. Fallback to Local Engine if backend offline
-    if (!computedAqi) {
-      computedAqi = calculateOverallAQI(payload);
-    }
-
-    // Render results
-    renderCalculationResults(computedAqi);
-
-    // Restore button
-    calcBtn.innerHTML = originalText;
-    calcBtn.disabled = false;
-  });
+  if (mainLeafletMap) {
+    mainLeafletMap.panTo([lat, lon]);
+  }
 }
 
-function renderCalculationResults(res) {
-  const resContainer = document.getElementById("calcResultsBox");
-  if (!resContainer) return;
+window.resetMapView = function() {
+  if (mainLeafletMap) {
+    mainLeafletMap.setView([22.5, 79.5], 5);
+  }
+};
 
-  resContainer.classList.remove("d-none");
-  resContainer.scrollIntoView({ behavior: "smooth" });
+// CPCB Calculator - Step by Step Linear Formula
+window.computeAqi = function() {
+  const pm25 = parseFloat(document.getElementById("calc_pm25").value) || null;
+  const pm10 = parseFloat(document.getElementById("calc_pm10").value) || null;
+  const no2 = parseFloat(document.getElementById("calc_no2").value) || null;
+  const so2 = parseFloat(document.getElementById("calc_so2").value) || null;
+  const co = parseFloat(document.getElementById("calc_co").value) || null;
+  const o3 = parseFloat(document.getElementById("calc_o3").value) || null;
+  const nh3 = parseFloat(document.getElementById("calc_nh3").value) || null;
+
+  const inputs = { pm25, pm10, no2, so2, co, o3, nh3 };
+  const subIndices = {};
+  const steps = [];
+
+  for (const [p, conc] of Object.entries(inputs)) {
+    if (conc === null || isNaN(conc) || conc < 0) continue;
+    const ranges = CPCB_BREAKPOINTS[p];
+    if (!ranges) continue;
+
+    let matched = null;
+    for (const [b_lo, b_hi, i_lo, i_hi] of ranges) {
+      if (conc >= b_lo && conc <= b_hi) {
+        matched = [b_lo, b_hi, i_lo, i_hi];
+        break;
+      }
+    }
+    if (!matched && conc > ranges[ranges.length - 1][1]) {
+      const last = ranges[ranges.length - 1];
+      matched = [last[0], last[1], last[2], last[3]];
+    }
+
+    if (matched) {
+      const [b_lo, b_hi, i_lo, i_hi] = matched;
+      const sub = Math.round(i_lo + ((i_hi - i_lo) / (b_hi - b_lo)) * (conc - b_lo));
+      subIndices[p] = sub;
+      steps.push({
+        pollutant: p.toUpperCase(),
+        conc: conc,
+        b_range: `[${b_lo} - ${b_hi}]`,
+        i_range: `[${i_lo} - ${i_hi}]`,
+        formula: `${i_lo} + [(${i_hi} - ${i_lo})/(${b_hi} - ${b_lo})] × (${conc} - ${b_lo})`,
+        sub_index: sub
+      });
+    }
+  }
+
+  if (steps.length === 0) {
+    alert("Please provide at least one valid pollutant concentration value.");
+    return;
+  }
+
+  // Find max sub-index as overall AQI
+  let maxSub = 0;
+  let dominant = "";
+  for (const [p, sub] of Object.entries(subIndices)) {
+    if (sub > maxSub) {
+      maxSub = sub;
+      dominant = p.toUpperCase();
+    }
+  }
+
+  const category = getAqiCategoryName(maxSub);
+  const color = getAqiColor(maxSub);
+
+  // Show results
+  const resBox = document.getElementById("calcResultsBox");
+  if (resBox) resBox.classList.remove("d-none");
 
   const aqiEl = document.getElementById("calcResultAqi");
-  if (aqiEl) aqiEl.textContent = res.aqi;
+  if (aqiEl) aqiEl.textContent = maxSub;
 
   const catEl = document.getElementById("calcResultCat");
   if (catEl) {
-    catEl.textContent = res.category;
-    catEl.style.backgroundColor = res.color;
-    catEl.style.color = res.textColor || "#ffffff";
+    catEl.textContent = category;
+    catEl.style.backgroundColor = color;
+    catEl.style.color = color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
   }
 
   const domEl = document.getElementById("calcResultDominant");
-  if (domEl) {
-    domEl.textContent = res.dominant_name || res.dominantName || "PM2.5";
+  if (domEl) domEl.textContent = dominant;
+
+  // Render Breakdown Table
+  const tableBody = document.getElementById("calcStepsTableBody");
+  if (tableBody) {
+    tableBody.innerHTML = steps.map(s => `
+      <tr>
+        <td class="fw-bold">${s.pollutant}</td>
+        <td>${s.conc}</td>
+        <td><code>${s.b_range}</code></td>
+        <td><code>${s.i_range}</code></td>
+        <td class="small font-monospace">${s.formula}</td>
+        <td class="fw-bold fs-6 text-primary">${s.sub_index}</td>
+      </tr>
+    `).join("");
   }
-
-  // Render step-by-step breakdown table
-  const tbody = document.getElementById("calcStepsTableBody");
-  if (tbody) {
-    tbody.innerHTML = "";
-    const breakdowns = res.breakdowns || [];
-
-    breakdowns.forEach(step => {
-      const cat = getAQICategory(step.sub_index);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="fw-bold">${step.pollutant}</td>
-        <td>${step.concentration} ${step.unit}</td>
-        <td>[${step.b_lo} - ${step.b_hi}]</td>
-        <td>[${step.i_lo} - ${step.i_hi}]</td>
-        <td><code>${step.formula}</code></td>
-        <td class="fw-bold" style="color: ${cat.color}">${step.sub_index}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-}
-
-// Preset Buttons for Calculator
-window.loadCalcPreset = function(type) {
-  const presets = {
-    clean: { pm25: 18, pm10: 32, no2: 15, so2: 8, co: 0.5, o3: 20, nh3: 10 },
-    delhi_severe: { pm25: 285, pm10: 420, no2: 95, so2: 32, co: 3.8, o3: 55, nh3: 65 },
-    moderate: { pm25: 65, pm10: 140, no2: 45, so2: 18, co: 1.4, o3: 35, nh3: 22 },
-    industrial_so2: { pm25: 45, pm10: 85, no2: 60, so2: 410, co: 2.2, o3: 30, nh3: 15 }
-  };
-
-  const p = presets[type];
-  if (!p) return;
-
-  document.getElementById("calc_pm25").value = p.pm25;
-  document.getElementById("calc_pm10").value = p.pm10;
-  document.getElementById("calc_no2").value = p.no2;
-  document.getElementById("calc_so2").value = p.so2;
-  document.getElementById("calc_co").value = p.co;
-  document.getElementById("calc_o3").value = p.o3;
-  document.getElementById("calc_nh3").value = p.nh3;
-
-  const btn = document.getElementById("btnComputeAQI");
-  if (btn) btn.click();
 };
 
-// Alert Controls
-function initAlertControls() {
-  const alertInput = document.getElementById("alertThresholdInput");
-  if (alertInput) {
-    alertInput.addEventListener("input", (e) => {
-      alertThreshold = parseInt(e.target.value) || 200;
-      const aqiRes = calculateOverallAQI(currentCity.pollutants);
-      checkAlertThreshold(aqiRes.aqi, currentCity.name);
-    });
-  }
-}
+// Load Live Pollutants from OpenWeather Air Pollution API into Calculator
+window.fetchLiveForCalculator = async function() {
+  const owKey = localStorage.getItem("airsense_openweather_key") || "";
+  try {
+    const res = await fetch(`/api/openweather/live/${currentCityId}?api_key=${encodeURIComponent(owKey)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const p = data.pollutants || {};
+      
+      if (p.pm25 !== undefined) document.getElementById("calc_pm25").value = p.pm25;
+      if (p.pm10 !== undefined) document.getElementById("calc_pm10").value = p.pm10;
+      if (p.no2 !== undefined) document.getElementById("calc_no2").value = p.no2;
+      if (p.so2 !== undefined) document.getElementById("calc_so2").value = p.so2;
+      if (p.co !== undefined) document.getElementById("calc_co").value = p.co;
+      if (p.o3 !== undefined) document.getElementById("calc_o3").value = p.o3;
+      if (p.nh3 !== undefined) document.getElementById("calc_nh3").value = p.nh3;
 
-function checkAlertThreshold(aqi, cityName) {
-  const banner = document.getElementById("alertBanner");
-  if (!banner) return;
-
-  if (aqi >= alertThreshold) {
-    banner.classList.remove("d-none");
-    const bannerText = document.getElementById("alertBannerText");
-    if (bannerText) {
-      bannerText.innerHTML = `
-        <strong>AQI Warning Alert:</strong> AQI in <b>${cityName}</b> is currently <b>${aqi}</b>, exceeding your set threshold of ${alertThreshold}! High-risk precautions recommended.
-      `;
+      computeAqi();
+      alert(`Successfully loaded live measurements from ${data.source}!`);
+      return;
     }
-  } else {
-    banner.classList.add("d-none");
+  } catch (err) {
+    console.log("Direct backend live fetch error, using city baseline:", err);
   }
-}
 
-// Export CSV Feature
-window.exportCityCSV = function() {
-  const cityId = currentCity ? currentCity.id : "delhi";
-  const backendExportUrl = `/api/export/${cityId}`;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = backendExportUrl;
-  document.body.appendChild(iframe);
+  // Fallback to active city telemetry
+  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  document.getElementById("calc_pm25").value = city.pm25;
+  document.getElementById("calc_pm10").value = city.pm10;
+  document.getElementById("calc_no2").value = city.no2;
+  document.getElementById("calc_so2").value = city.so2;
+  document.getElementById("calc_co").value = (city.co / 1000).toFixed(1);
+  document.getElementById("calc_o3").value = city.o3;
+  document.getElementById("calc_nh3").value = 22;
+  computeAqi();
+};
+
+// Preset Scenarios
+window.loadCalcPreset = function(type) {
+  if (type === "clean") {
+    document.getElementById("calc_pm25").value = 18;
+    document.getElementById("calc_pm10").value = 32;
+    document.getElementById("calc_no2").value = 14;
+    document.getElementById("calc_so2").value = 6;
+    document.getElementById("calc_co").value = 0.5;
+    document.getElementById("calc_o3").value = 16;
+    document.getElementById("calc_nh3").value = 10;
+  } else if (type === "moderate") {
+    document.getElementById("calc_pm25").value = 52;
+    document.getElementById("calc_pm10").value = 88;
+    document.getElementById("calc_no2").value = 34;
+    document.getElementById("calc_so2").value = 14;
+    document.getElementById("calc_co").value = 1.2;
+    document.getElementById("calc_o3").value = 28;
+    document.getElementById("calc_nh3").value = 18;
+  } else if (type === "delhi_severe") {
+    document.getElementById("calc_pm25").value = 240;
+    document.getElementById("calc_pm10").value = 380;
+    document.getElementById("calc_no2").value = 92;
+    document.getElementById("calc_so2").value = 32;
+    document.getElementById("calc_co").value = 3.8;
+    document.getElementById("calc_o3").value = 54;
+    document.getElementById("calc_nh3").value = 64;
+  } else if (type === "industrial_so2") {
+    document.getElementById("calc_pm25").value = 65;
+    document.getElementById("calc_pm10").value = 110;
+    document.getElementById("calc_no2").value = 45;
+    document.getElementById("calc_so2").value = 420;
+    document.getElementById("calc_co").value = 1.6;
+    document.getElementById("calc_o3").value = 32;
+    document.getElementById("calc_nh3").value = 26;
+  }
+  computeAqi();
+};
+
+// Helper: Populate Calculator when user clicks a Major Pollutant card
+window.populateCalculatorPollutant = function(pollutantId, val) {
+  const target = document.getElementById(`calc_${pollutantId}`);
+  if (target) {
+    if (pollutantId === "co" && val > 100) {
+      target.value = (val / 1000).toFixed(1);
+    } else {
+      target.value = val;
+    }
+  }
+  const calcSec = document.getElementById("calculatorSection");
+  if (calcSec) {
+    calcSec.scrollIntoView({ behavior: "smooth" });
+  }
+};
+
+// Save API Keys from Modal
+window.saveApiKeys = function() {
+  const iqairKey = document.getElementById("inputIqairKey").value.trim();
+  const owKey = document.getElementById("inputOpenweatherKey").value.trim();
+
+  localStorage.setItem("airsense_iqair_key", iqairKey);
+  localStorage.setItem("airsense_openweather_key", owKey);
+
+  const alertBox = document.getElementById("apiKeyStatusAlert");
+  const alertText = document.getElementById("apiKeyStatusText");
+  if (alertBox && alertText) {
+    alertText.textContent = "API Keys saved successfully! Refreshing telemetry...";
+    alertBox.classList.remove("d-none");
+  }
 
   setTimeout(() => {
-    document.body.removeChild(iframe);
-  }, 3000);
-
-  // Client-side fallback generator
-  const aqiRes = calculateOverallAQI(currentCity.pollutants);
-  const rows = [
-    ["Parameter", "Value", "Unit"],
-    ["City", currentCity.name, ""],
-    ["State", currentCity.state, ""],
-    ["Station", currentCity.station, ""],
-    ["Overall AQI", aqiRes.aqi, "CPCB Scale"],
-    ["AQI Category", aqiRes.category, ""],
-    ["Dominant Pollutant", aqiRes.dominantName, ""],
-    ["PM2.5", currentCity.pollutants.pm25, "µg/m³"],
-    ["PM10", currentCity.pollutants.pm10, "µg/m³"],
-    ["NO2", currentCity.pollutants.no2, "µg/m³"],
-    ["SO2", currentCity.pollutants.so2, "µg/m³"],
-    ["CO", currentCity.pollutants.co, "mg/m³"],
-    ["O3", currentCity.pollutants.o3, "µg/m³"],
-    ["NH3", currentCity.pollutants.nh3, "µg/m³"],
-    ["Export Date", new Date().toISOString(), "UTC"]
-  ];
-
-  const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `AirSense_${currentCity.id}_AQI_Report.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const modalEl = document.getElementById("apiSettingsModal");
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+    loadCity(currentCityId);
+  }, 900);
 };
 
-// Print / PDF Report
-window.printReport = function() {
-  window.print();
+// User Location
+window.locateUser = function() {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const userLat = pos.coords.latitude;
+      const userLon = pos.coords.longitude;
+      
+      // Find nearest city
+      let nearest = INDIAN_CITIES_LIST[0];
+      let minDist = 999999;
+      INDIAN_CITIES_LIST.forEach(c => {
+        const d = Math.hypot(c.lat - userLat, c.lon - userLon);
+        if (d < minDist) {
+          minDist = d;
+          nearest = c;
+        }
+      });
+      loadCity(nearest.id);
+    },
+    () => {
+      alert("Unable to retrieve your location. Showing Delhi NCR by default.");
+    }
+  );
 };
+
+// Share AQI
+window.shareAQI = function() {
+  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const shareText = `Live Air Quality in ${city.name}: AQI ${city.aqi} (${city.cat}). Checked on AirSense India!`;
+  if (navigator.share) {
+    navigator.share({ title: "AirSense India", text: shareText, url: window.location.href });
+  } else {
+    navigator.clipboard.writeText(`${shareText} - ${window.location.href}`);
+    alert("AQI assessment copied to clipboard!");
+  }
+};
+
+// Favorite Toggle
+window.toggleFavorite = function() {
+  const favBtn = document.getElementById("btnFavorite");
+  if (favBtn) {
+    const icon = favBtn.querySelector("i");
+    if (icon.classList.contains("fa-regular")) {
+      icon.classList.remove("fa-regular");
+      icon.classList.add("fa-solid", "text-danger");
+    } else {
+      icon.classList.remove("fa-solid", "text-danger");
+      icon.classList.add("fa-regular");
+    }
+  }
+};
+
+// Export CSV
+window.exportCityCSV = function() {
+  window.location.href = `/api/export/${currentCityId}`;
+};
+
+// AQI Color Helpers
+function getAqiColor(aqi) {
+  if (aqi <= 50) return "#00E400";
+  if (aqi <= 100) return "#FFFF00";
+  if (aqi <= 200) return "#FF7E00";
+  if (aqi <= 300) return "#FF0000";
+  if (aqi <= 400) return "#8F3F97";
+  return "#7E0023";
+}
+
+function getAqiCategoryName(aqi) {
+  if (aqi <= 50) return "Good";
+  if (aqi <= 100) return "Moderate";
+  if (aqi <= 200) return "Poor";
+  if (aqi <= 300) return "Unhealthy";
+  if (aqi <= 400) return "Severe";
+  return "Hazardous";
+}
+
+function getCategoryBgColor(aqi) {
+  if (aqi <= 50) return "#DCFCE7";
+  if (aqi <= 100) return "#FEF9C3";
+  if (aqi <= 200) return "#FFEDD5";
+  if (aqi <= 300) return "#FEE2E2";
+  if (aqi <= 400) return "#F3E8FF";
+  return "#FFE4E6";
+}
+
+function getCategoryTextColor(aqi) {
+  if (aqi <= 50) return "#15803D";
+  if (aqi <= 100) return "#854D0E";
+  if (aqi <= 200) return "#C2410C";
+  if (aqi <= 300) return "#B91C1C";
+  if (aqi <= 400) return "#6B21A8";
+  return "#881337";
+}
+
+function getCategoryGradient(aqi) {
+  if (aqi <= 50) return "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)";
+  if (aqi <= 100) return "linear-gradient(135deg, #FEFCE8 0%, #FEF08A 100%)";
+  if (aqi <= 200) return "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)";
+  if (aqi <= 300) return "linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 60%, #FECDD3 100%)";
+  if (aqi <= 400) return "linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)";
+  return "linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)";
+}

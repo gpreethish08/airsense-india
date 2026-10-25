@@ -18,7 +18,11 @@ from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index, 
 from services.pollution_index import calculate_pollution_index
 from services.health_advisory import get_health_advisory
 from services.forecast import generate_7day_forecast
-from services.data_service import get_all_cities, get_city_details, get_seasonal_patterns, INDIAN_CITIES
+from services.data_service import (
+    get_all_cities, get_city_details, get_seasonal_patterns, 
+    INDIAN_CITIES, generate_calendar_data, fetch_openweather_data, 
+    fetch_iqair_data, fetch_waqi_live_data
+)
 
 app = FastAPI(
     title="AirSense India API",
@@ -80,12 +84,57 @@ def list_cities():
 
 
 @app.get("/api/city/{city_id}")
-def get_city(city_id: str):
-    """Returns comprehensive analytics, trends, health advisory, and 7-day forecast for a city."""
-    details = get_city_details(city_id)
+def get_city(city_id: str, openweather_key: Optional[str] = None, iqair_key: Optional[str] = None):
+    """Returns comprehensive analytics, trends, major pollutants, and live weather for a city."""
+    details = get_city_details(city_id, openweather_key=openweather_key, iqair_key=iqair_key)
     if not details:
         raise HTTPException(status_code=404, detail=f"City '{city_id}' not found.")
     return details
+
+
+@app.get("/api/calendar/{city_id}")
+def get_calendar(city_id: str, year: int = 2026, months: str = "8,9,10"):
+    """Returns daily AQI calendar data for specified months (e.g. August, September, October)."""
+    month_list = [int(m.strip()) for m in months.split(",") if m.strip().isdigit()]
+    if not month_list:
+        month_list = [8, 9, 10]
+    return generate_calendar_data(city_id, year=year, months=month_list)
+
+
+@app.get("/api/openweather/live/{city_id}")
+def get_openweather_live(city_id: str, api_key: Optional[str] = None):
+    """Fetches real-time pollutant concentrations directly from OpenWeather Air Pollution API for the CPCB calculator."""
+    clean_target = city_id.lower().strip()
+    target = None
+    for k, c in INDIAN_CITIES.items():
+        if c["id"].lower() == clean_target or k.lower() == clean_target:
+            target = c
+            break
+    if not target:
+        target = INDIAN_CITIES["Delhi"]
+        
+    lat = target["lat"]
+    lon = target["lon"]
+    ow_result = fetch_openweather_data(lat, lon, api_key)
+    if ow_result:
+        return ow_result
+        
+    # Fallback to WAQI or target CAAQMS station
+    waqi_res = fetch_waqi_live_data(lat, lon)
+    if waqi_res:
+        return waqi_res
+        
+    return {
+        "source": "CAAQMS Baseline",
+        "pollutants": target["pollutants"],
+        "weather": {
+            "temp": target["temp"],
+            "humidity": target["humidity"],
+            "wind_speed": target["wind_speed"],
+            "description": "Partly Cloudy",
+            "uv_index": 1.5
+        }
+    }
 
 
 @app.post("/api/calculate")

@@ -1,333 +1,719 @@
-/* AirSense India - Ice Silver, Deep Aubergine & Marigold Theme */
+/* AirSense India - Light Modern IQAir Aesthetic */
+/* Inspiring Colors: Clean White, Slate Gray, Sky Blue, and Official AQI Spectrum */
+
 :root {
-  /* Brand Theme Colors */
-  --aubergine-deep: #13091B;
-  --aubergine-base: #1A0C26;
-  --aubergine-card: #231034;
-  --aubergine-card-hover: #2D1543;
-  --aubergine-surface: #1E0D2E;
+  /* Surface & Base Colors */
+  --bg-page: #F4F7FB;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --bg-muted: #EDF2F7;
   
-  --marigold: #F59E0B;
-  --marigold-glow: #FFA800;
-  --marigold-hover: #D97706;
-  --marigold-light: rgba(245, 158, 11, 0.18);
-  --marigold-border: rgba(245, 158, 11, 0.4);
+  /* Typography Colors */
+  --text-main: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-light: #64748B;
+  
+  /* Borders */
+  --border-color: #E2E8F0;
+  --border-focus: #0284C7;
+  --border-subtle: #F1F5F9;
+  
+  /* Primary & Accents */
+  --primary-blue: #0284C7;
+  --primary-blue-hover: #0369A1;
+  --primary-blue-light: #E0F2FE;
+  
+  /* Standard AQI Spectrum Colors (CPCB & IQAir) */
+  --aqi-good: #00E400;
+  --aqi-moderate: #FFFF00;
+  --aqi-poor: #FF7E00;
+  --aqi-unhealthy: #FF0000;
+  --aqi-severe: #8F3F97;
+  --aqi-hazardous: #7E0023;
 
-  --ice-silver-100: #F8FAFC;
-  --ice-silver-200: #F1F5F9;
-  --ice-silver-300: #E2E8F0;
-  --ice-silver-400: #CBD5E1;
-  --ice-silver-muted: #94A3B8;
-  --ice-silver-border: rgba(226, 232, 240, 0.15);
-
-  --border-color: rgba(245, 158, 11, 0.12);
-  --border-silver: rgba(226, 232, 240, 0.1);
-
-  /* CPCB AQI Category Spectrum Colors */
-  --aqi-good: #10B981;
-  --aqi-satisfactory: #84CC16;
-  --aqi-moderate: #F59E0B;
-  --aqi-poor: #F97316;
-  --aqi-verypoor: #EF4444;
-  --aqi-severe: #A855F7;
+  /* Pastel Tint Backgrounds */
+  --bg-good-pastel: #ECFDF5;
+  --bg-moderate-pastel: #FEFCE8;
+  --bg-poor-pastel: #FFF7ED;
+  --bg-unhealthy-pastel: #FFF1F2;
+  --bg-severe-pastel: #FAF5FF;
+  --bg-hazardous-pastel: #FDF2F8;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--aubergine-deep);
-  background-image: 
-    radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.09) 0%, transparent 45%);
-  color: var(--ice-silver-200);
+  background-color: var(--bg-page);
+  color: var(--text-main);
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Glassmorphic Navbar in Deep Aubergine */
+/* Navbar */
 .navbar-custom {
-  background: rgba(19, 9, 27, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #FFFFFF;
   border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
   position: sticky;
   top: 0;
   z-index: 1050;
 }
 
-.brand-badge {
-  background: linear-gradient(135deg, #FFA800 0%, #C026D3 100%);
-  color: #13091B;
+.brand-title {
+  color: #0F172A;
   font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+  letter-spacing: -0.5px;
+  font-size: 1.25rem;
 }
 
-.nav-link {
-  color: var(--ice-silver-400) !important;
-  font-weight: 500;
+.brand-badge {
+  background: var(--primary-blue-light);
+  color: var(--primary-blue);
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(2, 132, 199, 0.2);
+}
+
+.nav-link-custom {
+  color: var(--text-secondary) !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
-.nav-link:hover {
-  color: var(--marigold) !important;
+.nav-link-custom:hover {
+  color: var(--primary-blue) !important;
+  background: #F1F5F9;
 }
 
-/* Deep Aubergine & Ice Silver Glass Cards */
-.glass-card {
-  background: rgba(35, 16, 52, 0.78);
-  border: 1px solid var(--border-silver);
-  border-radius: 16px;
-  box-shadow: 0 10px 32px 0 rgba(11, 5, 16, 0.6);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+/* Clean White Card Containers */
+.clean-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.glass-card:hover {
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 12px 36px 0 rgba(19, 9, 27, 0.8);
+.clean-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
 }
 
-.card-title-custom {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--ice-silver-100);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Top Meta Row (Photo 3) */
+.hero-meta-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
 }
 
-/* Hero Section with Marigold & Aubergine Atmosphere */
-.hero-banner {
-  background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.15), transparent 50%),
-              radial-gradient(circle at bottom left, rgba(88, 28, 135, 0.25), transparent 50%);
-  padding: 2.2rem 0 1.5rem 0;
-  border-bottom: 1px solid var(--border-color);
+.hero-meta-sub {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
 }
 
-/* Big AQI Circular Gauge */
-.aqi-circle-badge {
-  width: 175px;
-  height: 175px;
+.hero-meta-time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.btn-locate {
+  background: #FFFFFF;
+  color: var(--primary-blue);
+  border: 1.5px solid var(--primary-blue);
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 30px;
+  transition: all 0.2s ease;
+}
+
+.btn-locate:hover {
+  background: var(--primary-blue);
+  color: #FFFFFF;
+}
+
+.btn-icon-round {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.6);
-  margin: 0 auto;
-  position: relative;
-  border: 4px solid rgba(241, 245, 249, 0.3);
-  transition: all 0.4s ease;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
 }
 
-.aqi-circle-value {
-  font-size: 3.8rem;
+.btn-icon-round:hover {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+
+/* Hero Banner Container (Photo 3) */
+.hero-banner-card {
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+  background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 60%, #FECDD3 100%);
+  transition: background 0.4s ease;
+}
+
+/* AQI Hero Dial & Text */
+.hero-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.hero-aqi-number {
+  font-size: 5rem;
   font-weight: 900;
   line-height: 1;
+  color: var(--text-main);
+  letter-spacing: -2px;
 }
 
-.aqi-circle-label {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
+.hero-aqi-unit {
+  font-size: 0.95rem;
   font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.hero-category-badge {
+  font-size: 1.15rem;
+  font-weight: 800;
+  padding: 8px 24px;
+  border-radius: 14px;
+  display: inline-block;
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+}
+
+.hero-pollutant-subtext {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.hero-pollutant-subtext b {
+  color: var(--text-main);
+  font-size: 1.05rem;
+}
+
+/* Spectrum Rainbow Bar with Indicator (Photo 3) */
+.aqi-spectrum-wrapper {
+  position: relative;
+  max-width: 440px;
+  margin-top: 14px;
+}
+
+.aqi-spectrum-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right, 
+    #00E400 0%, #00E400 16.6%, 
+    #FFFF00 16.6%, #FFFF00 33.3%, 
+    #FF7E00 33.3%, #FF7E00 50%, 
+    #FF0000 50%, #FF0000 66.6%, 
+    #8F3F97 66.6%, #8F3F97 83.3%, 
+    #7E0023 83.3%, #7E0023 100%
+  );
+  position: relative;
+}
+
+.aqi-spectrum-pointer {
+  position: absolute;
+  top: -14px;
+  left: 48%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid #0F172A;
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aqi-spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
-/* Pollutant Cards Grid */
-.pollutant-card {
-  background: rgba(30, 14, 45, 0.85);
-  border: 1px solid rgba(226, 232, 240, 0.08);
+.aqi-spectrum-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Frosted Weather Card inside Hero (Photo 3) */
+.weather-card-frosted {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  padding: 18px 22px;
+  max-width: 380px;
+}
+
+.weather-temp-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.weather-condition-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.weather-metrics-divider {
+  border-left: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.weather-metric-item {
+  text-align: center;
+}
+
+.weather-metric-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.weather-metric-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+/* Rank Tag Bar (Photo 3) */
+.rank-pill {
+  background: #EF4444;
+  color: #FFFFFF;
+  font-weight: 800;
+  padding: 6px 16px;
   border-radius: 12px;
-  padding: 14px 16px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rank-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Mini Map Preview Widget */
+.mini-map-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  overflow: hidden;
+  height: 100%;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  position: relative;
+  min-height: 240px;
+}
+
+.mini-map-header-btn {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+/* Major Air Pollutants Section (Photo 1) */
+.section-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.section-main-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.section-city-link {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  text-decoration: none;
+}
+
+.section-city-link:hover {
+  text-decoration: underline;
+}
+
+/* Major Pollutants Card (Photo 1) */
+.pollutant-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.pollutant-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  background-color: var(--indicator-color, #10B981);
 }
 
 .pollutant-card:hover {
-  background: rgba(43, 20, 64, 0.95);
   transform: translateY(-2px);
-  border-color: var(--marigold-border);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
-.pollutant-val {
-  font-size: 1.6rem;
+.pollutant-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pollutant-cloud-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  font-size: 1.5rem;
+}
+
+.pollutant-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.pollutant-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.pollutant-subtitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pollutant-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-align: right;
+}
+
+.pollutant-num {
+  font-size: 1.65rem;
   font-weight: 800;
-  color: var(--ice-silver-100);
+  line-height: 1;
+  color: var(--text-main);
 }
 
 .pollutant-unit {
   font-size: 0.75rem;
-  color: var(--ice-silver-muted);
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
-/* Interactive India Map */
-#indiaMap {
-  height: 520px;
-  width: 100%;
-  border-radius: 14px;
-  z-index: 1;
-  background-color: var(--aubergine-base);
-  border: 1px solid var(--border-silver);
+.pollutant-chevron {
+  color: #CBD5E1;
+  font-size: 1rem;
 }
 
-/* Custom Popup for Leaflet Map */
-.leaflet-popup-content-wrapper {
-  background: #1A0C26 !important;
-  color: #F8FAFC !important;
-  border-radius: 12px !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8) !important;
-  border: 1px solid rgba(245, 158, 11, 0.3) !important;
-  padding: 4px !important;
+.alert-dot-badge {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  color: #EF4444;
+  font-size: 0.75rem;
 }
 
-.leaflet-popup-tip {
-  background: #1A0C26 !important;
+/* Air Quality Calendar Section (Photo 2) */
+.calendar-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
 }
 
-.custom-map-tooltip {
-  background: #13091B !important;
-  color: #F8FAFC !important;
-  border: 1px solid #F59E0B !important;
-  border-radius: 6px !important;
-  font-weight: 600 !important;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+.month-calendar-block {
+  flex: 1;
+  min-width: 290px;
 }
 
-/* Chart container helpers */
-.chart-container-custom {
-  position: relative;
-  height: 310px;
-  width: 100%;
+.month-title-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
 }
 
-/* Buttons in Marigold & Ice Silver */
-.btn-primary {
-  background: linear-gradient(135deg, #FFA800 0%, #F59E0B 100%) !important;
-  border: 1px solid #D97706 !important;
-  color: #13091B !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.calendar-weekday-col {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+.cal-day-cell {
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  background: #FFFFFF;
+  min-height: 48px;
+  transition: transform 0.15s ease;
+}
+
+.cal-day-cell:hover {
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.cal-cell-date {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: #FFFFFF;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.cal-cell-aqi {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  padding: 4px 0;
+}
+
+/* Calendar Bottom Legend & Nav (Photo 2) */
+.cal-legend-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cal-legend-bar {
+  flex: 1;
+  max-width: 500px;
+}
+
+.cal-legend-gradient {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, 
+    #00E400 0%, #00E400 16.6%, 
+    #FFFF00 16.6%, #FFFF00 33.3%, 
+    #FF7E00 33.3%, #FF7E00 50%, 
+    #FF0000 50%, #FF0000 66.6%, 
+    #8F3F97 66.6%, #8F3F97 83.3%, 
+    #7E0023 83.3%, #7E0023 100%
+  );
+}
+
+.cal-legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.cal-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.cal-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #38BDF8;
+  color: #FFFFFF;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-primary:hover, .btn-primary:focus {
-  background: linear-gradient(135deg, #FFB81C 0%, #FFA800 100%) !important;
-  color: #0B0410 !important;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
-  transform: translateY(-1px);
+.cal-nav-btn:hover {
+  background: #0284C7;
+  transform: scale(1.05);
 }
 
-.btn-outline-primary {
-  border-color: var(--marigold) !important;
-  color: var(--marigold) !important;
+/* Map Section */
+#indiaMap {
+  height: 480px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  z-index: 1;
 }
 
-.btn-outline-primary:hover {
-  background-color: var(--marigold) !important;
-  color: #13091B !important;
-}
-
-.btn-outline-light {
-  border-color: var(--ice-silver-border) !important;
-  color: var(--ice-silver-300) !important;
-}
-
-.btn-outline-light:hover {
-  background-color: rgba(241, 245, 249, 0.12) !important;
-  color: #ffffff !important;
-  border-color: var(--ice-silver-300) !important;
-}
-
-/* Custom Form Controls */
-.form-control-custom, .form-select-custom {
-  background-color: var(--aubergine-base);
-  border: 1px solid var(--border-silver);
-  color: var(--ice-silver-200);
+/* CPCB Calculator Form */
+.form-control-light {
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-color);
+  color: var(--text-main);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 8px 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
-.form-control-custom:focus, .form-select-custom:focus {
-  background-color: var(--aubergine-base);
-  border-color: var(--marigold);
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+.form-control-light:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  background: #FFFFFF;
 }
 
-/* Spectrum Pill */
-.spectrum-pill {
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.8rem;
+.calc-breakdown-table {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+}
+
+.calc-breakdown-table th {
+  background: #F8FAFC;
+  color: var(--text-secondary);
   font-weight: 700;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.8rem;
+  text-transform: uppercase;
 }
 
-/* Category colors */
-.bg-good { background-color: var(--aqi-good) !important; color: white !important; }
-.bg-satisfactory { background-color: var(--aqi-satisfactory) !important; color: #111 !important; }
-.bg-moderate { background-color: var(--aqi-moderate) !important; color: #111 !important; }
-.bg-poor { background-color: var(--aqi-poor) !important; color: white !important; }
-.bg-verypoor { background-color: var(--aqi-verypoor) !important; color: white !important; }
-.bg-severe { background-color: var(--aqi-severe) !important; color: white !important; }
+.calc-breakdown-table td {
+  color: var(--text-main);
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
 
-.text-marigold { color: var(--marigold) !important; }
-.text-silver { color: var(--ice-silver-300) !important; }
-
-/* Sub-index calculation step box */
-.calc-step-box {
-  background: var(--aubergine-base);
-  border-left: 4px solid var(--marigold);
-  padding: 12px 16px;
-  border-radius: 6px;
-  font-family: 'Fira Code', monospace;
+/* Floating Banner at Bottom of Photo 2 */
+.promo-pill-bar {
+  background: #1E293B;
+  color: #FFFFFF;
+  border-radius: 30px;
+  padding: 6px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
   font-size: 0.85rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
-/* Table in Dark Aubergine */
-.table-dark {
-  background-color: transparent !important;
-  --bs-table-bg: transparent !important;
+.promo-pill-link {
+  color: #E2E8F0;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.table-dark th {
-  color: var(--marigold) !important;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.25) !important;
+.promo-pill-link:hover {
+  color: #38BDF8;
 }
 
-.table-dark td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  color: var(--ice-silver-300) !important;
+/* Modal styling */
+.modal-content {
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* Pulse alert animation */
-@keyframes pulseAlert {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.02); opacity: 0.9; }
-  100% { transform: scale(1); opacity: 1; }
+/* Footer */
+footer {
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
-.alert-pulse {
-  animation: pulseAlert 2.5s infinite;
-}
-
-/* Print styles for downloadable PDF */
-@media print {
-  body {
-    background-color: white !important;
-    color: black !important;
+/* Responsive adjustments */
+@media (max-width: 991px) {
+  .hero-aqi-number {
+    font-size: 3.8rem;
   }
-  .navbar-custom, .btn, .no-print, #mapSection {
-    display: none !important;
-  }
-  .glass-card {
-    border: 1px solid #ccc !important;
-    box-shadow: none !important;
-    background: white !important;
-    color: black !important;
+  .weather-card-frosted {
+    max-width: 100%;
+    margin-top: 18px;
   }
 }
