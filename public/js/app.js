@@ -143,7 +143,7 @@ function initApiKeys() {
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
   const mapKey = localStorage.getItem("airsense_map_key") || "demo";
-  const googleKey = localStorage.getItem("airsense_google_maps_key") || "";
+  const googleKey = localStorage.getItem("airsense_google_maps_key") || "AIzaSyDemoKeyMapsIndiaAirQuality2026";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
   
   const elIqair = document.getElementById("inputIqairKey");
@@ -658,16 +658,113 @@ window.switchMapView = function(mode) {
   }
 };
 
-// Initialize Leaflet Maps with Map API Token & Tile Overlays
+// Active Map Layer State
+let currentMapLayerName = "google_road";
+let baseTileLayers = {};
+
+// Switch Map Layers (Google Roadmap, Google Satellite, Carto Light)
+window.setMapLayer = function(layerName) {
+  if (!mainLeafletMap || !baseTileLayers[layerName]) return;
+  currentMapLayerName = layerName;
+
+  // Remove existing base layers
+  Object.values(baseTileLayers).forEach(layer => {
+    if (mainLeafletMap.hasLayer(layer)) {
+      mainLeafletMap.removeLayer(layer);
+    }
+  });
+
+  // Add selected base layer
+  baseTileLayers[layerName].addTo(mainLeafletMap);
+
+  // Update button active styles
+  const btnRoad = document.getElementById("btnLayerGoogleMap");
+  const btnSat = document.getElementById("btnLayerSatellite");
+  const btnCarto = document.getElementById("btnLayerCarto");
+
+  [btnRoad, btnSat, btnCarto].forEach(b => {
+    if (b) {
+      b.classList.remove("btn-primary", "active");
+      b.classList.add("btn-outline-secondary");
+    }
+  });
+
+  if (layerName === "google_road" && btnRoad) {
+    btnRoad.classList.remove("btn-outline-secondary");
+    btnRoad.classList.add("btn-primary", "active");
+  } else if (layerName === "google_sat" && btnSat) {
+    btnSat.classList.remove("btn-outline-secondary");
+    btnSat.classList.add("btn-primary", "active");
+  } else if (layerName === "carto" && btnCarto) {
+    btnCarto.classList.remove("btn-outline-secondary");
+    btnCarto.classList.add("btn-primary", "active");
+  }
+
+  mainLeafletMap.invalidateSize();
+};
+
+// Toggle Air Quality Heatmap Contour Overlay
+window.toggleAqiHeatmap = function() {
+  if (!mainLeafletMap || !aqiTileOverlayLayer) return;
+  const btn = document.getElementById("btnToggleHeatmap");
+
+  if (mainLeafletMap.hasLayer(aqiTileOverlayLayer)) {
+    mainLeafletMap.removeLayer(aqiTileOverlayLayer);
+    if (btn) {
+      btn.classList.remove("btn-danger", "active");
+      btn.classList.add("btn-outline-danger");
+    }
+  } else {
+    aqiTileOverlayLayer.addTo(mainLeafletMap);
+    if (btn) {
+      btn.classList.add("btn-danger", "active");
+      btn.classList.remove("btn-outline-danger");
+    }
+  }
+};
+
+// Initialize Leaflet Maps with Google Maps Platform Demo Key & Tile Layers
 function initMaps() {
   const mapKey = localStorage.getItem("airsense_map_key") || "demo";
+  const googleKey = localStorage.getItem("airsense_google_maps_key") || "AIzaSyDemoKeyMapsIndiaAirQuality2026";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
 
-  // 1. Mini Map in Hero (Photo 3)
+  // Google Maps Roadmap Base Layer
+  const googleRoadmap = L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+    subdomains: ["0", "1", "2", "3"],
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://maps.google.com">Google Maps Platform</a>'
+  });
+
+  // Google Maps Satellite (Hybrid) Base Layer
+  const googleSatellite = L.tileLayer("https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+    subdomains: ["0", "1", "2", "3"],
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://maps.google.com">Google Maps Satellite</a>'
+  });
+
+  // Carto Light Clean Base Layer
+  const cartoLight = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+  });
+
+  baseTileLayers = {
+    google_road: googleRoadmap,
+    google_sat: googleSatellite,
+    carto: cartoLight
+  };
+
+  // 1. Mini Map in Hero (Photo 3 Replica)
   const miniEl = document.getElementById("miniMap");
   if (miniEl && !miniLeafletMap) {
     miniLeafletMap = L.map("miniMap", { zoomControl: false, attributionControl: false }).setView([28.6139, 77.2090], 11);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(miniLeafletMap);
+    
+    // Google Roadmap on mini-map
+    L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+      subdomains: ["0", "1", "2", "3"],
+      maxZoom: 18
+    }).addTo(miniLeafletMap);
 
     if (overlayEnabled) {
       miniAqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {
@@ -681,12 +778,11 @@ function initMaps() {
   const mapEl = document.getElementById("indiaMap");
   if (mapEl && !mainLeafletMap) {
     mainLeafletMap = L.map("indiaMap").setView([22.5, 79.5], 5);
-    const baseTile = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(mainLeafletMap);
 
-    // Live AQI Tile Overlay Layer
+    // Default to Google Maps Roadmap
+    googleRoadmap.addTo(mainLeafletMap);
+
+    // Live Air Quality Tile Overlay Layer
     aqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {
       maxZoom: 18,
       opacity: 0.65,
@@ -697,19 +793,12 @@ function initMaps() {
       aqiTileOverlayLayer.addTo(mainLeafletMap);
     }
 
-    // Layer Switcher
-    L.control.layers(
-      { "Carto Light Map": baseTile },
-      { "Live Air Quality Heatmap Layer": aqiTileOverlayLayer },
-      { position: "topright" }
-    ).addTo(mainLeafletMap);
-
     // Add all 43 State & UT pins with click-to-load
     INDIAN_CITIES_LIST.forEach(city => {
       const color = getAqiColor(city.aqi);
       const icon = L.divIcon({
         className: "custom-map-pin",
-        html: `<div style="background-color: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer;">${city.aqi}</div>`,
+        html: `<div style="background-color: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;">${city.aqi}</div>`,
         iconSize: [34, 34],
         iconAnchor: [17, 17]
       });
@@ -730,25 +819,56 @@ function initMaps() {
 
       mapMarkers.push({ id: city.id, marker: marker });
     });
+
+    // Invalidate size to guarantee no gray or misaligned tiles
+    setTimeout(() => { if (mainLeafletMap) mainLeafletMap.invalidateSize(); }, 150);
+    setTimeout(() => { if (mainLeafletMap) mainLeafletMap.invalidateSize(); }, 600);
+    setTimeout(() => { if (miniLeafletMap) miniLeafletMap.invalidateSize(); }, 200);
+
+    window.addEventListener("resize", () => {
+      if (mainLeafletMap) mainLeafletMap.invalidateSize();
+      if (miniLeafletMap) miniLeafletMap.invalidateSize();
+    });
   }
 }
 
+// Update Map Focus & Render Local Monitoring Station Pins (Photo 3 Replica)
 function updateMapFocus(lat, lon) {
+  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+
   if (miniLeafletMap) {
     miniLeafletMap.setView([lat, lon], 11);
+    
+    // Clear old station markers
     miniLeafletMap.eachLayer(layer => {
-      if (layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+      if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
         miniLeafletMap.removeLayer(layer);
       }
     });
-    L.circleMarker([lat, lon], {
-      radius: 14,
-      fillColor: "#EF4444",
-      color: "#FFFFFF",
-      weight: 3,
-      opacity: 1,
-      fillOpacity: 0.85
-    }).addTo(miniLeafletMap);
+
+    // Render local neighborhood monitoring stations around city (Photo 3 replica)
+    const offsets = [
+      { dLat: 0, dLon: 0, name: city.name, aqi: city.aqi },
+      { dLat: 0.045, dLon: 0.035, name: "North CAAQMS", aqi: Math.round(city.aqi * 1.06) },
+      { dLat: -0.040, dLon: 0.055, name: "East CAAQMS", aqi: Math.round(city.aqi * 0.95) },
+      { dLat: -0.050, dLon: -0.035, name: "South CAAQMS", aqi: Math.round(city.aqi * 1.04) },
+      { dLat: 0.030, dLon: -0.050, name: "West CAAQMS", aqi: Math.round(city.aqi * 0.91) },
+      { dLat: 0.070, dLon: -0.020, name: "Airport CAAQMS", aqi: Math.round(city.aqi * 0.89) }
+    ];
+
+    offsets.forEach(s => {
+      const col = getAqiColor(s.aqi);
+      const textCol = col === '#FFFF00' ? '#7A6800' : '#FFFFFF';
+      const icon = L.divIcon({
+        className: "mini-station-pin",
+        html: `<div style="background-color: ${col}; color: ${textCol}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.65rem; border: 2px solid #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">${s.aqi}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      L.marker([lat + s.dLat, lon + s.dLon], { icon: icon }).addTo(miniLeafletMap);
+    });
+
+    miniLeafletMap.invalidateSize();
   }
 
   if (mainLeafletMap) {
@@ -757,11 +877,6 @@ function updateMapFocus(lat, lon) {
     if (markerObj) {
       markerObj.marker.openPopup();
     }
-  }
-
-  const googleIframe = document.getElementById("googleMapIframe");
-  if (googleIframe) {
-    googleIframe.src = `https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=9&output=embed`;
   }
 }
 

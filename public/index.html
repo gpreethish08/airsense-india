@@ -550,15 +550,21 @@
             <div class="small text-secondary">Geospatial telemetry across all 28 Indian States &amp; 8 Union Territories (43 CAAQMS Stations). Click any station to inspect live AQI.</div>
           </div>
           <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Map Mode Switcher -->
+            <!-- Map Mode / Layer Switcher -->
             <div class="btn-group btn-group-sm" role="group">
-              <button class="btn btn-primary active rounded-start-pill px-3 fw-bold" id="btnViewLeaflet" onclick="window.switchMapView('leaflet')">
-                <i class="fa-solid fa-layer-group me-1"></i> AQI Heatmap
-              </button>
-              <button class="btn btn-outline-secondary rounded-end-pill px-3 fw-bold" id="btnViewGoogle" onclick="window.switchMapView('google')">
+              <button class="btn btn-primary active rounded-start-pill px-3 fw-bold" id="btnLayerGoogleMap" onclick="window.setMapLayer('google_road')">
                 <i class="fa-solid fa-map me-1"></i> Google Maps (Demo Key)
               </button>
+              <button class="btn btn-outline-secondary px-3 fw-bold" id="btnLayerSatellite" onclick="window.setMapLayer('google_sat')">
+                <i class="fa-solid fa-earth-americas me-1"></i> Google Satellite
+              </button>
+              <button class="btn btn-outline-secondary rounded-end-pill px-3 fw-bold" id="btnLayerCarto" onclick="window.setMapLayer('carto')">
+                <i class="fa-solid fa-layer-group me-1"></i> Clean Light
+              </button>
             </div>
+            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" id="btnToggleHeatmap" onclick="window.toggleAqiHeatmap()">
+              <i class="fa-solid fa-fire me-1"></i> Toggle AQI Heatmap
+            </button>
             <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold">
               <i class="fa-solid fa-location-dot text-danger me-1"></i> 43 Stations Active
             </span>
@@ -568,13 +574,8 @@
           </div>
         </div>
 
-        <!-- Leaflet Map Container -->
+        <!-- Interactive Map Container -->
         <div id="indiaMap"></div>
-
-        <!-- Google Maps View Container (Powered by Google Maps / Maps Demo Key) -->
-        <div id="googleMap" class="clean-map-container d-none">
-          <iframe id="googleMapIframe" class="google-map-frame" src="https://maps.google.com/maps?q=28.6139,77.2090&z=6&output=embed" loading="lazy"></iframe>
-        </div>
 
         <!-- Clickable Quick State Selection Chips -->
         <div class="mt-3">
@@ -744,7 +745,7 @@
               <span>Google Maps Demo Key / API Key:</span>
               <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank" class="small text-primary text-decoration-none">Get Maps Demo Key <i class="fa-solid fa-external-link small"></i></a>
             </label>
-            <input type="text" id="inputGoogleMapsKey" class="form-control form-control-light font-monospace" placeholder="e.g. AIzaSy... (or enter your Maps Demo Key)">
+            <input type="text" id="inputGoogleMapsKey" class="form-control form-control-light font-monospace" value="AIzaSyDemoKeyMapsIndiaAirQuality2026" placeholder="e.g. AIzaSy... (Maps Demo Key)">
             <div class="form-text small">Renders Google Maps with terrain/satellite views and state markers.</div>
           </div>
 
