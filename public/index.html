@@ -213,126 +213,106 @@
         </div>
       </div>
 
-      <!-- Main Hero Banner + Mini Map Widget (Photo 3) -->
-      <div class="row g-3 align-items-stretch">
-        <!-- Main AQI Banner -->
-        <div class="col-lg-8">
-          <div class="hero-banner-card p-4 h-100 d-flex flex-column justify-content-between" id="heroBannerBg">
-            
-            <div class="row align-items-center g-3">
-              <!-- Left AQI Dial & Details -->
-              <div class="col-lg-5 col-md-6 col-12">
-                <div class="hero-live-tag mb-2">
-                  <i class="fa-solid fa-circle" id="heroLiveDot" style="color: #FF0000; font-size: 0.55rem;"></i> Live AQI
-                </div>
-
-                <div class="d-flex align-items-baseline gap-2 mb-1">
-                  <span id="heroAqiNumber" class="hero-aqi-number">166</span>
-                  <span class="hero-aqi-unit" id="heroAqiUnitLabel">AQI (US)</span>
-                </div>
-
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="small text-secondary fw-semibold">Air Quality is</span>
-                  <span id="heroAqiCategory" class="hero-category-badge">Unhealthy</span>
-                </div>
-
-                <!-- Sub pollutants -->
-                <div class="hero-pollutant-subtext mb-3">
-                  PM2.5 : <b id="heroPm25">78</b> µg/m³ &nbsp;|&nbsp; PM10 : <b id="heroPm10">159</b> µg/m³
-                </div>
-
-                <!-- Spectrum Rainbow Bar with Pointer -->
-                <div class="aqi-spectrum-wrapper">
-                  <div class="aqi-spectrum-bar">
-                    <div id="heroSpectrumPointer" class="aqi-spectrum-pointer" style="left: 45%;"></div>
-                  </div>
-                  <div class="aqi-spectrum-labels">
-                    <span>Good</span>
-                    <span>Moderate</span>
-                    <span>Poor</span>
-                    <span>Unhealthy</span>
-                    <span>Severe</span>
-                    <span>Hazardous</span>
-                  </div>
-                  <div class="aqi-spectrum-ticks">
-                    <span>0</span>
-                    <span>50</span>
-                    <span>100</span>
-                    <span>150</span>
-                    <span>200</span>
-                    <span>300</span>
-                    <span>301+</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Center: The Boy Mascot (Photo 3 Position & Character) -->
-              <div class="col-lg-3 col-md-6 col-12 text-center d-flex flex-column align-items-center justify-content-center my-3 my-md-0" style="min-height: 180px;">
-                <div id="heroMascotContainer" class="hero-mascot-box">
-                  <img id="mascotBoyImg" src="images/boy_masked.png" alt="AirSense Boy Mascot" class="mascot-boy-img">
-                  <div id="mascotBoyBadge" class="badge bg-danger text-white rounded-pill px-3 py-1 small fw-bold mt-2 mascot-badge">
-                    <i class="fa-solid fa-head-side-mask me-1"></i> AQI > 100: Face Mask Mandatory!
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right: Frosted Weather Card -->
-              <div class="col-lg-4 col-12 d-flex flex-column align-items-end justify-content-center">
-                <!-- Frosted Weather Card -->
-                <div class="weather-card-frosted w-100 mb-0">
-                  <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                      <i id="heroWeatherIcon" class="fa-solid fa-cloud-sun text-primary fs-2"></i>
-                      <div>
-                        <div id="heroWeatherTemp" class="weather-temp-val">34 °C</div>
-                        <div id="heroWeatherDesc" class="weather-condition-text">Partly Cloudy</div>
-                      </div>
-                    </div>
-                    <i class="fa-solid fa-arrow-up-right-from-square text-muted"></i>
-                  </div>
-
-                  <div class="row g-1 pt-2 weather-metrics-divider" style="border-top: 1px solid var(--border-color); border-bottom: 0;">
-                    <div class="col-4 weather-metric-item">
-                      <div class="weather-metric-label">Humidity</div>
-                      <div id="heroWeatherHumidity" class="weather-metric-val">17 %</div>
-                    </div>
-                    <div class="col-4 weather-metric-item" style="border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
-                      <div class="weather-metric-label">Wind Speed</div>
-                      <div id="heroWeatherWind" class="weather-metric-val">10.4 km/h</div>
-                    </div>
-                    <div class="col-4 weather-metric-item">
-                      <div class="weather-metric-label">UV Index</div>
-                      <div id="heroWeatherUv" class="weather-metric-val">1.5</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
+      <!-- Main Hero Banner (Full Width - Small map removed as requested) -->
+      <div class="hero-banner-card p-4 d-flex flex-column justify-content-between" id="heroBannerBg">
+        
+        <div class="row align-items-center g-4">
+          <!-- Left AQI Dial & Details -->
+          <div class="col-lg-5 col-md-6 col-12">
+            <div class="hero-live-tag mb-2">
+              <i class="fa-solid fa-circle" id="heroLiveDot" style="color: #FF0000; font-size: 0.55rem;"></i> Live AQI
             </div>
 
-            <!-- Bottom City Rank Bar (Photo 3) -->
-            <div class="mt-3 pt-3 d-flex align-items-center flex-wrap gap-2" style="border-top: 1px solid rgba(0,0,0,0.06);">
-              <span class="rank-pill">Rank <span id="heroCityRank">74th</span></span>
-              <span id="heroRankText" class="rank-text">Currently, New Delhi ranks 74th among the most polluted cities globally.</span>
+            <div class="d-flex align-items-baseline gap-2 mb-1">
+              <span id="heroAqiNumber" class="hero-aqi-number">166</span>
+              <span class="hero-aqi-unit" id="heroAqiUnitLabel">AQI (US)</span>
             </div>
 
-          </div>
-        </div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="small text-secondary fw-semibold">Air Quality is</span>
+              <span id="heroAqiCategory" class="hero-category-badge">Unhealthy</span>
+            </div>
 
-        <!-- Right Side Mini Map Preview Card (Photo 3) -->
-        <div class="col-lg-4">
-          <div class="mini-map-card">
-            <a href="#mapSection" class="mini-map-header-btn">
-              <i class="fa-solid fa-map me-1 text-primary"></i> AQI Map <i class="fa-solid fa-expand ms-1 text-muted"></i>
-            </a>
-            <!-- Mini Leaflet Map -->
-            <div id="miniMap" style="height: 100%; min-height: 280px; width: 100%;"></div>
-            
-            <div class="position-absolute bottom-0 start-0 m-3 px-3 py-1 bg-white rounded-pill shadow-sm small fw-bold d-flex align-items-center gap-1" style="z-index: 100;">
-              <i class="fa-solid fa-location-dot text-danger"></i> <span id="miniMapCityName">Delhi</span>
+            <!-- Sub pollutants -->
+            <div class="hero-pollutant-subtext mb-3">
+              PM2.5 : <b id="heroPm25">78</b> µg/m³ &nbsp;|&nbsp; PM10 : <b id="heroPm10">159</b> µg/m³
+            </div>
+
+            <!-- Spectrum Rainbow Bar with Pointer -->
+            <div class="aqi-spectrum-wrapper">
+              <div class="aqi-spectrum-bar">
+                <div id="heroSpectrumPointer" class="aqi-spectrum-pointer" style="left: 45%;"></div>
+              </div>
+              <div class="aqi-spectrum-labels">
+                <span>Good</span>
+                <span>Moderate</span>
+                <span>Poor</span>
+                <span>Unhealthy</span>
+                <span>Severe</span>
+                <span>Hazardous</span>
+              </div>
+              <div class="aqi-spectrum-ticks">
+                <span>0</span>
+                <span>50</span>
+                <span>100</span>
+                <span>150</span>
+                <span>200</span>
+                <span>300</span>
+                <span>301+</span>
+              </div>
             </div>
           </div>
+
+          <!-- Center: The Boy Mascot (Photo 3 Position & Character) -->
+          <div class="col-lg-3 col-md-6 col-12 text-center d-flex flex-column align-items-center justify-content-center my-3 my-md-0" style="min-height: 180px;">
+            <div id="heroMascotContainer" class="hero-mascot-box">
+              <img id="mascotBoyImg" src="images/boy_masked.png" alt="AirSense Boy Mascot" class="mascot-boy-img">
+              <div id="mascotBoyBadge" class="badge bg-danger text-white rounded-pill px-3 py-1 small fw-bold mt-2 mascot-badge">
+                <i class="fa-solid fa-head-side-mask me-1"></i> AQI > 100: Face Mask Mandatory!
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Frosted Weather Card -->
+          <div class="col-lg-4 col-12 d-flex flex-column align-items-lg-end align-items-center justify-content-center">
+            <!-- Frosted Weather Card -->
+            <div class="weather-card-frosted w-100 mb-0" style="max-width: 360px;">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <i id="heroWeatherIcon" class="fa-solid fa-cloud-sun text-primary fs-2"></i>
+                  <div>
+                    <div id="heroWeatherTemp" class="weather-temp-val">34 °C</div>
+                    <div id="heroWeatherDesc" class="weather-condition-text">Partly Cloudy</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square text-muted"></i>
+              </div>
+
+              <div class="row g-1 pt-2 weather-metrics-divider" style="border-top: 1px solid var(--border-color); border-bottom: 0;">
+                <div class="col-4 weather-metric-item">
+                  <div class="weather-metric-label">Humidity</div>
+                  <div id="heroWeatherHumidity" class="weather-metric-val">17 %</div>
+                </div>
+                <div class="col-4 weather-metric-item" style="border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
+                  <div class="weather-metric-label">Wind Speed</div>
+                  <div id="heroWeatherWind" class="weather-metric-val">10.4 km/h</div>
+                </div>
+                <div class="col-4 weather-metric-item">
+                  <div class="weather-metric-label">UV Index</div>
+                  <div id="heroWeatherUv" class="weather-metric-val">1.5</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
+
+        <!-- Bottom City Rank Bar (Photo 3) -->
+        <div class="mt-4 pt-3 d-flex align-items-center flex-wrap gap-2" style="border-top: 1px solid rgba(0,0,0,0.06);">
+          <span class="rank-pill">Rank <span id="heroCityRank">74th</span></span>
+          <span id="heroRankText" class="rank-text">Currently, New Delhi ranks 74th among the most polluted cities globally.</span>
+        </div>
+
       </div>
     </section>
 

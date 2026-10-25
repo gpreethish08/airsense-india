@@ -410,20 +410,20 @@ function renderHero(data) {
   const wUv = document.getElementById("heroWeatherUv");
   if (wUv) wUv.textContent = `${info.uv_index || 1.5}`;
 
+  const rankVal = (info && info.rank) ? info.rank : (data.rank_info ? data.rank_info.rank : 74);
   const rankNum = document.getElementById("heroCityRank");
-  if (rankNum) rankNum.textContent = `${info.rank}th`;
+  if (rankNum) rankNum.textContent = `${rankVal}th`;
 
   const rankText = document.getElementById("heroRankText");
-  if (rankText) rankText.textContent = info.rank_text || `Currently, ${info.name} ranks ${info.rank}th among the most polluted cities globally.`;
+  if (rankText) {
+    rankText.textContent = (info && info.rank_text) ? info.rank_text : `Currently, ${info.name || 'this city'} ranks ${rankVal}th among the most polluted cities globally.`;
+  }
 
   const link1 = document.getElementById("pollutantsCityLink");
   if (link1) link1.textContent = info.name;
 
   const link2 = document.getElementById("calCityLink");
   if (link2) link2.textContent = info.name;
-
-  const miniName = document.getElementById("miniMapCityName");
-  if (miniName) miniName.textContent = info.name;
 }
 
 // Render Major Pollutants (Photo 1)
