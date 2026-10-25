@@ -249,47 +249,96 @@ function updateMascot(aqi) {
   }
 }
 
+// Robust Multi-tier City/State Lookup
+function findCity(query) {
+  if (!query) return INDIAN_CITIES_LIST[0];
+  const q = String(query).toLowerCase().trim();
+  
+  // 1. Exact ID match
+  let match = INDIAN_CITIES_LIST.find(c => c.id.toLowerCase() === q);
+  if (match) return match;
+  
+  // 2. Exact Name or State match
+  match = INDIAN_CITIES_LIST.find(c => c.name.toLowerCase() === q || c.state.toLowerCase() === q);
+  if (match) return match;
+  
+  // 3. Substring match
+  match = INDIAN_CITIES_LIST.find(c => 
+    c.id.toLowerCase().includes(q) || 
+    q.includes(c.id.toLowerCase()) ||
+    c.name.toLowerCase().includes(q) || 
+    q.includes(c.name.toLowerCase()) ||
+    c.state.toLowerCase().includes(q) ||
+    q.includes(c.state.toLowerCase())
+  );
+  if (match) return match;
+
+  // 4. State alias map for all 28 states & 8 UTs
+  const stateMap = {
+    "goa": "panaji", "karnataka": "bengaluru", "maharashtra": "mumbai",
+    "tamil": "chennai", "telangana": "hyderabad", "bengal": "kolkata",
+    "andhra": "amaravati", "arunachal": "itanagar", "assam": "guwahati",
+    "bihar": "patna", "chhattisgarh": "raipur", "gujarat": "ahmedabad",
+    "haryana": "gurugram", "himachal": "shimla", "jharkhand": "ranchi",
+    "kerala": "thiruvananthapuram", "madhya": "bhopal", "manipur": "imphal",
+    "meghalaya": "shillong", "mizoram": "aizawl", "nagaland": "kohima",
+    "odisha": "bhubaneswar", "punjab": "amritsar", "rajasthan": "jaipur",
+    "sikkim": "gangtok", "tripura": "agartala", "uttar": "lucknow",
+    "uttarakhand": "dehradun", "andaman": "portblair", "chandigarh": "chandigarh",
+    "dadra": "daman", "daman": "daman", "delhi": "delhi", "jammu": "srinagar",
+    "kashmir": "srinagar", "ladakh": "leh", "lakshadweep": "kavaratti",
+    "puducherry": "puducherry", "pondicherry": "puducherry"
+  };
+  for (const [st, targetId] of Object.entries(stateMap)) {
+    if (q.includes(st)) {
+      return INDIAN_CITIES_LIST.find(c => c.id === targetId) || INDIAN_CITIES_LIST[0];
+    }
+  }
+  
+  return INDIAN_CITIES_LIST[0];
+}
+
 // Global Load City Telemetry (Works 100% on Static GitHub Pages & Localhost)
 window.loadCity = async function(cityId) {
   if (!cityId) return;
-  currentCityId = cityId;
+  const city = findCity(cityId);
+  currentCityId = city.id;
 
-  // Sync selectors
+  // Sync selectors to resolved canonical city.id
   const navCity = document.getElementById("navCitySelector");
-  if (navCity && navCity.value !== cityId) navCity.value = cityId;
+  if (navCity && navCity.value !== city.id) navCity.value = city.id;
   const heroCity = document.getElementById("heroStateSelector");
-  if (heroCity && heroCity.value !== cityId) heroCity.value = cityId;
+  if (heroCity && heroCity.value !== city.id) heroCity.value = city.id;
 
   // Update active state chip
   document.querySelectorAll(".state-chip-btn").forEach(btn => {
-    if (btn.dataset.cityId === cityId) {
+    if (btn.dataset.cityId === city.id) {
       btn.classList.add("active", "border-primary", "shadow-sm");
     } else {
       btn.classList.remove("active", "border-primary", "shadow-sm");
     }
   });
 
-  // Find telemetry in 43-location CAAQMS dataset
-  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
+  // Generate telemetry for resolved city
   const clientData = generateClientCityData(city);
 
   // Immediate render (zero delay)
   renderHero(clientData);
   renderMajorPollutants(clientData);
-  renderCalendar(cityId, currentYear, calendarMonths);
+  renderCalendar(city.id, currentYear, calendarMonths);
   updateMapFocus(city.lat, city.lon);
 
   // If live backend exists, refresh asynchronously
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
   try {
-    const url = `/api/city/${cityId}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
+    const url = `/api/city/${city.id}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       renderHero(data);
       renderMajorPollutants(data);
-      renderCalendar(cityId, currentYear, calendarMonths);
+      renderCalendar(city.id, currentYear, calendarMonths);
       updateMapFocus(data.city_info.lat, data.city_info.lon);
     }
   } catch (err) {
@@ -537,7 +586,7 @@ function buildCalendarHtml(monthsData) {
 
 // Client Calendar Generator scaled to state base AQI
 function generateClientCalendar(cityId, year, months) {
-  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
+  const city = findCity(cityId);
   const isDelhi = city.id === "delhi";
   const baseAqi = isDelhi ? 166 : city.aqi;
 
@@ -636,7 +685,7 @@ window.switchMapView = function(mode) {
       btnGoogle.classList.add("btn-primary", "active");
       btnGoogle.classList.remove("btn-outline-secondary");
     }
-    const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+    const city = findCity(currentCityId);
     const iframe = document.getElementById("googleMapIframe");
     if (iframe) {
       iframe.src = `https://maps.google.com/maps?q=${city.lat},${city.lon}&hl=en&z=9&output=embed`;
@@ -1018,7 +1067,7 @@ window.fetchLiveForCalculator = async function() {
     // Fallback to client city data
   }
 
-  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const city = findCity(currentCityId);
   document.getElementById("calc_pm25").value = city.pm25;
   document.getElementById("calc_pm10").value = city.pm10;
   document.getElementById("calc_co").value = (city.co / 1000).toFixed(1);
@@ -1144,7 +1193,7 @@ window.locateUser = function() {
 
 // Share AQI
 window.shareAQI = function() {
-  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const city = findCity(currentCityId);
   const shareText = `Live Air Quality in ${city.name} (${city.state}): AQI ${city.aqi} (${city.cat}). Checked on AirSense India!`;
   if (navigator.share) {
     navigator.share({ title: "AirSense India", text: shareText, url: window.location.href });

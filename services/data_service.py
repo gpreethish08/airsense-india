@@ -29,11 +29,11 @@ INDIAN_CITIES: Dict[str, Dict[str, Any]] = {
         "state": "National Capital Region",
         "lat": 28.6139,
         "lon": 77.2090,
-        "pollutants": {"pm25": 168.0, "pm10": 265.0, "no2": 72.0, "so2": 18.0, "co": 2.8, "o3": 42.0, "nh3": 38.0},
+        "pollutants": {"pm25": 78.0, "pm10": 159.0, "no2": 3.0, "so2": 5.0, "co": 2.661, "o3": 4.0, "nh3": 22.0},
         "station": "Anand Vihar CAAQMS Station, Delhi",
-        "temp": 24.5,
-        "humidity": 62,
-        "wind_speed": 6.8
+        "temp": 34.0,
+        "humidity": 17,
+        "wind_speed": 10.4
     },
     "Mumbai": {
         "id": "mumbai",
@@ -572,19 +572,59 @@ def get_all_cities() -> List[Dict[str, Any]]:
     return results
 
 
+def resolve_city_key(city_id_or_name: str) -> str:
+    """
+    Robust multi-tier lookup mapping any state name, city name, city ID,
+    or compound string (e.g. 'Goa - Panaji', 'Karnataka', 'Maharashtra')
+    to its definitive INDIAN_CITIES key.
+    """
+    if not city_id_or_name:
+        return "Delhi"
+    clean_target = city_id_or_name.lower().strip()
+
+    # 1. Exact Key match or ID match
+    for key, c in INDIAN_CITIES.items():
+        if key.lower() == clean_target or c["id"].lower() == clean_target:
+            return key
+
+    # 2. Exact Name or State match
+    for key, c in INDIAN_CITIES.items():
+        if c["name"].lower() == clean_target or c["state"].lower() == clean_target:
+            return key
+
+    # 3. Substring match in ID, name, or state
+    for key, c in INDIAN_CITIES.items():
+        if (clean_target in c["name"].lower() or c["name"].lower() in clean_target or
+            clean_target in c["state"].lower() or c["state"].lower() in clean_target or
+            clean_target in c["id"].lower() or c["id"].lower() in clean_target):
+            return key
+
+    # 4. State alias keyword map for all 28 states & 8 UTs
+    state_keywords = {
+        "goa": "Panaji", "karnataka": "Bengaluru", "maharashtra": "Mumbai",
+        "tamil": "Chennai", "telangana": "Hyderabad", "bengal": "Kolkata",
+        "andhra": "Amaravati", "arunachal": "Itanagar", "assam": "Guwahati",
+        "bihar": "Patna", "chhattisgarh": "Raipur", "gujarat": "Ahmedabad",
+        "haryana": "Gurugram", "himachal": "Shimla", "jharkhand": "Ranchi",
+        "kerala": "Thiruvananthapuram", "madhya": "Bhopal", "manipur": "Imphal",
+        "meghalaya": "Shillong", "mizoram": "Aizawl", "nagaland": "Kohima",
+        "odisha": "Bhubaneswar", "punjab": "Amritsar", "rajasthan": "Jaipur",
+        "sikkim": "Gangtok", "tripura": "Agartala", "uttar": "Lucknow",
+        "uttarakhand": "Dehradun", "andaman": "PortBlair", "chandigarh": "Chandigarh",
+        "dadra": "Daman", "daman": "Daman", "delhi": "Delhi", "jammu": "Srinagar",
+        "kashmir": "Srinagar", "ladakh": "Leh", "lakshadweep": "Kavaratti",
+        "puducherry": "Puducherry", "pondicherry": "Puducherry"
+    }
+    for kw, t_key in state_keywords.items():
+        if kw in clean_target:
+            return t_key
+
+    return "Delhi"
+
+
 def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None, iqair_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Returns comprehensive analytics for a chosen city with live API integration."""
-    target_key = None
-    clean_target = city_id_or_name.lower().strip()
-    
-    for key, c in INDIAN_CITIES.items():
-        if key.lower() == clean_target or c["id"].lower() == clean_target or clean_target in c["name"].lower():
-            target_key = key
-            break
-            
-    if not target_key:
-        target_key = "Delhi"
-        
+    target_key = resolve_city_key(city_id_or_name)
     city = INDIAN_CITIES[target_key].copy()
     pollutants = dict(city["pollutants"])
     weather_info = {
@@ -618,7 +658,7 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
     forecast = generate_7day_forecast(city["name"], aqi_res["aqi"], aqi_res["dominant_name"])
     
     # Calculate city ranking
-    rank_info = calculate_city_rank(city["id"], aqi_res["aqi"])
+    rank_info = calculate_city_rank(city["id"], aqi_res["aqi"], city["name"])
 
     # Build Photo 1 "Major Air Pollutants" Card Structure
     # Pollutants: PM2.5, PM10, CO, SO2, NO2, O3
@@ -981,27 +1021,28 @@ def fetch_waqi_live_data(lat: float, lon: float, token: str = "demo") -> Optiona
     return None
 
 
-def calculate_city_rank(city_id: str, current_aqi: int) -> Dict[str, Any]:
+def calculate_city_rank(city_id: str, current_aqi: int, city_name: str = "") -> Dict[str, Any]:
     """
     Calculates global and national air pollution ranking (1st = most polluted).
     Benchmarked against global IQAir Major Cities live ranking.
     """
+    name = city_name or city_id.title()
     # Delhi typically ranks 50th - 85th globally depending on hour/season (e.g. 74th in Photo 3)
     if city_id.lower() in ["delhi", "new delhi"]:
         rank = 74
         text = "Currently, New Delhi ranks 74th among the most polluted cities globally."
     elif current_aqi >= 300:
         rank = max(1, 100 - int(current_aqi / 4))
-        text = f"Currently ranks #{rank} among the most polluted cities globally."
+        text = f"Currently, {name} ranks #{rank} among the most polluted cities globally."
     elif current_aqi >= 150:
         rank = max(20, 120 - int(current_aqi / 3))
-        text = f"Currently ranks #{rank} among major cities monitored globally."
+        text = f"Currently, {name} ranks #{rank} among major cities monitored globally."
     elif current_aqi >= 100:
         rank = max(50, 160 - int(current_aqi / 2))
-        text = f"Currently ranks #{rank} among major cities monitored globally."
+        text = f"Currently, {name} ranks #{rank} among major cities monitored globally."
     else:
         rank = min(250, 200 + (100 - current_aqi))
-        text = f"Enjoying relatively clean air, ranked #{rank} globally."
+        text = f"Enjoying relatively clean air, {name} is ranked #{rank} globally."
 
     return {"rank": rank, "text": text}
 
@@ -1028,8 +1069,12 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
     import calendar
     results = []
 
-    # City-specific base seasonal multipliers
-    is_delhi = "delhi" in city_id.lower()
+    city_key = resolve_city_key(city_id)
+    target_city = INDIAN_CITIES.get(city_key, INDIAN_CITIES["Delhi"])
+    is_delhi = "delhi" in city_id.lower() or city_key.lower() == "delhi"
+    state_aqi = calculate_overall_aqi(target_city["pollutants"])["aqi"]
+    if is_delhi:
+        state_aqi = 166
     
     # Specific known values from Photo 2 for Delhi for identical college viva accuracy
     delhi_photo_values = {
@@ -1070,17 +1115,17 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
                 if is_delhi and m in delhi_photo_values and day_num in delhi_photo_values[m]:
                     val = delhi_photo_values[m][day_num]
                 else:
-                    # Synthetic seasonal algorithm
-                    random.seed(year * 1000 + m * 50 + day_num + hash(city_id) % 999)
+                    # Synthetic seasonal algorithm scaled to state baseline AQI
+                    random.seed(year * 1000 + m * 50 + day_num + hash(city_key) % 999)
                     if m == 8:  # August: cleaner monsoon
-                        base = 90 + (hash(city_id) % 30)
-                        val = int(base + random.randint(-20, 35))
+                        base = max(15, int(state_aqi * 0.85))
                     elif m == 9:  # September: moderate
-                        base = 110 + (hash(city_id) % 35)
-                        val = int(base + random.randint(-25, 45))
+                        base = max(18, int(state_aqi * 0.95))
                     else:  # October: stubble burning & autumn inversion rise
-                        base = 145 + (hash(city_id) % 55)
-                        val = int(base + random.randint(-20, 60))
+                        base = max(20, int(state_aqi * 1.08))
+                    
+                    variance = random.randint(-max(3, int(base * 0.15)), max(4, int(base * 0.18)))
+                    val = max(10, base + variance)
 
                 # Compute color category
                 if val <= 50:
@@ -1135,6 +1180,7 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
 
     return {
         "city_id": city_id,
+        "city_name": target_city["name"],
         "year": year,
         "months": results
     }

@@ -21,7 +21,7 @@ from services.forecast import generate_7day_forecast
 from services.data_service import (
     get_all_cities, get_city_details, get_seasonal_patterns, 
     INDIAN_CITIES, generate_calendar_data, fetch_openweather_data, 
-    fetch_iqair_data, fetch_waqi_live_data
+    fetch_iqair_data, fetch_waqi_live_data, resolve_city_key
 )
 
 app = FastAPI(
@@ -104,14 +104,8 @@ def get_calendar(city_id: str, year: int = 2026, months: str = "8,9,10"):
 @app.get("/api/openweather/live/{city_id}")
 def get_openweather_live(city_id: str, api_key: Optional[str] = None):
     """Fetches real-time pollutant concentrations directly from OpenWeather Air Pollution API for the CPCB calculator."""
-    clean_target = city_id.lower().strip()
-    target = None
-    for k, c in INDIAN_CITIES.items():
-        if c["id"].lower() == clean_target or k.lower() == clean_target:
-            target = c
-            break
-    if not target:
-        target = INDIAN_CITIES["Delhi"]
+    city_key = resolve_city_key(city_id)
+    target = INDIAN_CITIES.get(city_key, INDIAN_CITIES["Delhi"])
         
     lat = target["lat"]
     lon = target["lon"]
