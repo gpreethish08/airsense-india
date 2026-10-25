@@ -262,6 +262,282 @@ INDIAN_CITIES: Dict[str, Dict[str, Any]] = {
         "temp": 24.8,
         "humidity": 72,
         "wind_speed": 6.4
+    },
+    "Amaravati": {
+        "id": "amaravati",
+        "name": "Amaravati",
+        "state": "Andhra Pradesh",
+        "lat": 16.5417,
+        "lon": 80.5158,
+        "pollutants": {"pm25": 46.0, "pm10": 74.0, "no2": 24.0, "so2": 13.0, "co": 0.8, "o3": 22.0, "nh3": 14.0},
+        "station": "Secretariat CAAQMS Station, Amaravati",
+        "temp": 30.5,
+        "humidity": 72,
+        "wind_speed": 12.0
+    },
+    "Itanagar": {
+        "id": "itanagar",
+        "name": "Itanagar",
+        "state": "Arunachal Pradesh",
+        "lat": 27.0844,
+        "lon": 93.6053,
+        "pollutants": {"pm25": 22.0, "pm10": 38.0, "no2": 12.0, "so2": 5.0, "co": 0.4, "o3": 15.0, "nh3": 8.0},
+        "station": "Ganga Lake CAAQMS, Itanagar",
+        "temp": 21.0,
+        "humidity": 68,
+        "wind_speed": 5.2
+    },
+    "Raipur": {
+        "id": "raipur",
+        "name": "Raipur",
+        "state": "Chhattisgarh",
+        "lat": 21.2514,
+        "lon": 81.6296,
+        "pollutants": {"pm25": 92.0, "pm10": 158.0, "no2": 44.0, "so2": 26.0, "co": 1.7, "o3": 33.0, "nh3": 24.0},
+        "station": "AIIMS Residential Complex CAAQMS, Raipur",
+        "temp": 28.2,
+        "humidity": 54,
+        "wind_speed": 8.3
+    },
+    "Panaji": {
+        "id": "panaji",
+        "name": "Panaji",
+        "state": "Goa",
+        "lat": 15.4909,
+        "lon": 73.8278,
+        "pollutants": {"pm25": 28.0, "pm10": 48.0, "no2": 16.0, "so2": 8.0, "co": 0.6, "o3": 20.0, "nh3": 10.0},
+        "station": "Kadamba Bus Stand CAAQMS, Panaji",
+        "temp": 31.0,
+        "humidity": 80,
+        "wind_speed": 15.0
+    },
+    "Gurugram": {
+        "id": "gurugram",
+        "name": "Gurugram",
+        "state": "Haryana",
+        "lat": 28.4595,
+        "lon": 77.0266,
+        "pollutants": {"pm25": 164.0, "pm10": 260.0, "no2": 68.0, "so2": 20.0, "co": 2.7, "o3": 42.0, "nh3": 36.0},
+        "station": "Vikas Sadan CAAQMS, Gurugram",
+        "temp": 24.8,
+        "humidity": 60,
+        "wind_speed": 6.5
+    },
+    "Shimla": {
+        "id": "shimla",
+        "name": "Shimla",
+        "state": "Himachal Pradesh",
+        "lat": 31.1048,
+        "lon": 77.1734,
+        "pollutants": {"pm25": 26.0, "pm10": 42.0, "no2": 15.0, "so2": 6.0, "co": 0.5, "o3": 19.0, "nh3": 9.0},
+        "station": "The Ridge CAAQMS Station, Shimla",
+        "temp": 16.5,
+        "humidity": 48,
+        "wind_speed": 7.8
+    },
+    "Ranchi": {
+        "id": "ranchi",
+        "name": "Ranchi",
+        "state": "Jharkhand",
+        "lat": 23.3441,
+        "lon": 85.3096,
+        "pollutants": {"pm25": 84.0, "pm10": 136.0, "no2": 38.0, "so2": 17.0, "co": 1.4, "o3": 28.0, "nh3": 19.0},
+        "station": "Doranda CAAQMS Station, Ranchi",
+        "temp": 26.0,
+        "humidity": 56,
+        "wind_speed": 8.0
+    },
+    "Thiruvananthapuram": {
+        "id": "thiruvananthapuram",
+        "name": "Thiruvananthapuram",
+        "state": "Kerala",
+        "lat": 8.5241,
+        "lon": 76.9366,
+        "pollutants": {"pm25": 30.0, "pm10": 50.0, "no2": 18.0, "so2": 7.0, "co": 0.6, "o3": 17.0, "nh3": 11.0},
+        "station": "Plammoodu CAAQMS, Thiruvananthapuram",
+        "temp": 29.5,
+        "humidity": 84,
+        "wind_speed": 14.2
+    },
+    "Imphal": {
+        "id": "imphal",
+        "name": "Imphal",
+        "state": "Manipur",
+        "lat": 24.8170,
+        "lon": 93.9368,
+        "pollutants": {"pm25": 36.0, "pm10": 58.0, "no2": 17.0, "so2": 7.0, "co": 0.7, "o3": 21.0, "nh3": 12.0},
+        "station": "DM College CAAQMS, Imphal",
+        "temp": 23.5,
+        "humidity": 70,
+        "wind_speed": 5.8
+    },
+    "Shillong": {
+        "id": "shillong",
+        "name": "Shillong",
+        "state": "Meghalaya",
+        "lat": 25.5788,
+        "lon": 91.8933,
+        "pollutants": {"pm25": 24.0, "pm10": 40.0, "no2": 14.0, "so2": 5.0, "co": 0.5, "o3": 16.0, "nh3": 8.0},
+        "station": "Laban CAAQMS Station, Shillong",
+        "temp": 18.0,
+        "humidity": 76,
+        "wind_speed": 6.2
+    },
+    "Aizawl": {
+        "id": "aizawl",
+        "name": "Aizawl",
+        "state": "Mizoram",
+        "lat": 23.7271,
+        "lon": 92.7176,
+        "pollutants": {"pm25": 19.0, "pm10": 34.0, "no2": 10.0, "so2": 4.0, "co": 0.4, "o3": 14.0, "nh3": 7.0},
+        "station": "Chanmari CAAQMS Station, Aizawl",
+        "temp": 22.0,
+        "humidity": 65,
+        "wind_speed": 4.8
+    },
+    "Kohima": {
+        "id": "kohima",
+        "name": "Kohima",
+        "state": "Nagaland",
+        "lat": 25.6751,
+        "lon": 94.1086,
+        "pollutants": {"pm25": 28.0, "pm10": 46.0, "no2": 16.0, "so2": 6.0, "co": 0.6, "o3": 18.0, "nh3": 9.0},
+        "station": "PR Hill CAAQMS Station, Kohima",
+        "temp": 20.0,
+        "humidity": 72,
+        "wind_speed": 5.4
+    },
+    "Bhubaneswar": {
+        "id": "bhubaneswar",
+        "name": "Bhubaneswar",
+        "state": "Odisha",
+        "lat": 20.2961,
+        "lon": 85.8245,
+        "pollutants": {"pm25": 62.0, "pm10": 104.0, "no2": 32.0, "so2": 16.0, "co": 1.1, "o3": 26.0, "nh3": 16.0},
+        "station": "Patia CAAQMS Station, Bhubaneswar",
+        "temp": 29.4,
+        "humidity": 68,
+        "wind_speed": 10.5
+    },
+    "Amritsar": {
+        "id": "amritsar",
+        "name": "Amritsar",
+        "state": "Punjab",
+        "lat": 31.6340,
+        "lon": 74.8723,
+        "pollutants": {"pm25": 118.0, "pm10": 188.0, "no2": 46.0, "so2": 18.0, "co": 1.9, "o3": 34.0, "nh3": 26.0},
+        "station": "Golden Temple Complex CAAQMS, Amritsar",
+        "temp": 22.8,
+        "humidity": 55,
+        "wind_speed": 7.4
+    },
+    "Gangtok": {
+        "id": "gangtok",
+        "name": "Gangtok",
+        "state": "Sikkim",
+        "lat": 27.3389,
+        "lon": 88.6065,
+        "pollutants": {"pm25": 21.0, "pm10": 35.0, "no2": 11.0, "so2": 5.0, "co": 0.4, "o3": 15.0, "nh3": 7.0},
+        "station": "MG Marg CAAQMS Station, Gangtok",
+        "temp": 17.2,
+        "humidity": 75,
+        "wind_speed": 5.0
+    },
+    "Agartala": {
+        "id": "agartala",
+        "name": "Agartala",
+        "state": "Tripura",
+        "lat": 23.8315,
+        "lon": 91.2868,
+        "pollutants": {"pm25": 56.0, "pm10": 94.0, "no2": 26.0, "so2": 10.0, "co": 1.0, "o3": 22.0, "nh3": 14.0},
+        "station": "Kunjaban CAAQMS Station, Agartala",
+        "temp": 26.4,
+        "humidity": 74,
+        "wind_speed": 6.8
+    },
+    "Dehradun": {
+        "id": "dehradun",
+        "name": "Dehradun",
+        "state": "Uttarakhand",
+        "lat": 30.3165,
+        "lon": 78.0322,
+        "pollutants": {"pm25": 68.0, "pm10": 112.0, "no2": 31.0, "so2": 12.0, "co": 1.2, "o3": 27.0, "nh3": 16.0},
+        "station": "Clock Tower CAAQMS, Dehradun",
+        "temp": 21.5,
+        "humidity": 52,
+        "wind_speed": 6.9
+    },
+    "Srinagar": {
+        "id": "srinagar",
+        "name": "Srinagar",
+        "state": "Jammu & Kashmir (UT)",
+        "lat": 34.0837,
+        "lon": 74.7973,
+        "pollutants": {"pm25": 42.0, "pm10": 68.0, "no2": 22.0, "so2": 8.0, "co": 0.9, "o3": 20.0, "nh3": 12.0},
+        "station": "Dal Lake CAAQMS Station, Srinagar",
+        "temp": 15.8,
+        "humidity": 58,
+        "wind_speed": 6.0
+    },
+    "Leh": {
+        "id": "leh",
+        "name": "Leh",
+        "state": "Ladakh (UT)",
+        "lat": 34.1526,
+        "lon": 77.5771,
+        "pollutants": {"pm25": 16.0, "pm10": 28.0, "no2": 9.0, "so2": 4.0, "co": 0.3, "o3": 24.0, "nh3": 6.0},
+        "station": "Main Bazaar CAAQMS, Leh Ladakh",
+        "temp": 8.5,
+        "humidity": 28,
+        "wind_speed": 9.4
+    },
+    "Puducherry": {
+        "id": "puducherry",
+        "name": "Puducherry",
+        "state": "Puducherry (UT)",
+        "lat": 11.9416,
+        "lon": 79.8083,
+        "pollutants": {"pm25": 38.0, "pm10": 60.0, "no2": 21.0, "so2": 9.0, "co": 0.7, "o3": 20.0, "nh3": 12.0},
+        "station": "Promenade Beach CAAQMS, Puducherry",
+        "temp": 30.8,
+        "humidity": 78,
+        "wind_speed": 14.8
+    },
+    "PortBlair": {
+        "id": "portblair",
+        "name": "Port Blair",
+        "state": "Andaman & Nicobar Islands (UT)",
+        "lat": 11.6234,
+        "lon": 92.7265,
+        "pollutants": {"pm25": 18.0, "pm10": 32.0, "no2": 8.0, "so2": 4.0, "co": 0.4, "o3": 16.0, "nh3": 6.0},
+        "station": "Aberdeen Jetty CAAQMS, Port Blair",
+        "temp": 29.8,
+        "humidity": 85,
+        "wind_speed": 16.5
+    },
+    "Daman": {
+        "id": "daman",
+        "name": "Daman & Diu",
+        "state": "Dadra & Nagar Haveli and Daman & Diu (UT)",
+        "lat": 20.3974,
+        "lon": 72.8328,
+        "pollutants": {"pm25": 48.0, "pm10": 78.0, "no2": 25.0, "so2": 11.0, "co": 0.9, "o3": 22.0, "nh3": 13.0},
+        "station": "Moti Daman CAAQMS Station",
+        "temp": 30.2,
+        "humidity": 74,
+        "wind_speed": 12.6
+    },
+    "Kavaratti": {
+        "id": "kavaratti",
+        "name": "Kavaratti",
+        "state": "Lakshadweep (UT)",
+        "lat": 10.5667,
+        "lon": 72.6417,
+        "pollutants": {"pm25": 15.0, "pm10": 26.0, "no2": 7.0, "so2": 3.0, "co": 0.3, "o3": 15.0, "nh3": 5.0},
+        "station": "Lagoon Marine CAAQMS, Kavaratti",
+        "temp": 29.4,
+        "humidity": 82,
+        "wind_speed": 15.4
     }
 }
 
@@ -354,12 +630,16 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
         if sub_idx <= 400: return "#8F3F97"
         return "#7E0023"
 
-    sub_pm25 = calculate_sub_index("pm25", pollutants.get("pm25", 0)) or 0
-    sub_pm10 = calculate_sub_index("pm10", pollutants.get("pm10", 0)) or 0
-    sub_co = calculate_sub_index("co", pollutants.get("co", 0)) or 0
-    sub_so2 = calculate_sub_index("so2", pollutants.get("so2", 0)) or 0
-    sub_no2 = calculate_sub_index("no2", pollutants.get("no2", 0)) or 0
-    sub_o3 = calculate_sub_index("o3", pollutants.get("o3", 0)) or 0
+    def _get_sub(pol: str, conc: float) -> int:
+        val, _ = calculate_sub_index(pol, conc)
+        return int(val) if val is not None else 0
+
+    sub_pm25 = _get_sub("pm25", pollutants.get("pm25", 0))
+    sub_pm10 = _get_sub("pm10", pollutants.get("pm10", 0))
+    sub_co = _get_sub("co", pollutants.get("co", 0))
+    sub_so2 = _get_sub("so2", pollutants.get("so2", 0))
+    sub_no2 = _get_sub("no2", pollutants.get("no2", 0))
+    sub_o3 = _get_sub("o3", pollutants.get("o3", 0))
 
     # In Delhi matching Photo 1: PM2.5 is 78 µg/m³, PM10 is 159 µg/m³, CO is 2661 ppb, SO2 is 5 ppb, NO2 is 3 ppb, O3 is 4 ppb
     co_ppb = int(pollutants.get("co", 2.6) * 1000)  # Convert mg/m³ to ppb

@@ -2,6 +2,7 @@
  * AirSense India - Web Application Client Logic
  * Author: Preethish (College Project)
  * Real-time CPCB & IQAir AQI monitoring, Major Air Pollutants, Air Quality Calendar & CPCB Calculator
+ * Covers ALL 28 Indian States & 8 Union Territories
  */
 
 // CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
@@ -64,37 +65,67 @@ const CPCB_BREAKPOINTS = {
   ]
 };
 
-// 20 Major Indian Cities Baseline Telemetry
+// All 28 Indian States & 8 Union Territories Comprehensive Telemetry Dataset
 const INDIAN_CITIES_LIST = [
-  { id: "delhi", name: "Delhi NCR", state: "Delhi", lat: 28.6139, lon: 77.2090, aqi: 166, cat: "Unhealthy", pm25: 78, pm10: 159, co: 2661, so2: 5, no2: 3, o3: 4, rank: 74, temp: 34.0, humidity: 17, wind: 10.4, station: "Anand Vihar CAAQMS Station" },
-  { id: "mumbai", name: "Mumbai", state: "Maharashtra", lat: 19.0760, lon: 72.8777, aqi: 118, cat: "Poor", pm25: 68, pm10: 118, co: 1200, so2: 15, no2: 44, o3: 28, rank: 98, temp: 30.2, humidity: 78, wind: 14.5, station: "BKC Bandra CAAQMS Station" },
-  { id: "bengaluru", name: "Bengaluru", state: "Karnataka", lat: 12.9716, lon: 77.5946, aqi: 62, cat: "Moderate", pm25: 38, pm10: 62, co: 800, so2: 8, no2: 26, o3: 22, rank: 145, temp: 23.0, humidity: 55, wind: 11.2, station: "Hebbal CAAQMS Station" },
-  { id: "kolkata", name: "Kolkata", state: "West Bengal", lat: 22.5726, lon: 88.3639, aqi: 155, cat: "Poor", pm25: 128, pm10: 195, co: 1900, so2: 22, no2: 58, o3: 36, rank: 82, temp: 27.8, humidity: 70, wind: 7.5, station: "Victoria Memorial CAAQMS" },
-  { id: "chennai", name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lon: 80.2707, aqi: 76, cat: "Moderate", pm25: 48, pm10: 76, co: 900, so2: 12, no2: 28, o3: 24, rank: 132, temp: 31.4, humidity: 74, wind: 16.0, station: "Velachery CAAQMS Station" },
-  { id: "hyderabad", name: "Hyderabad", state: "Telangana", lat: 17.3850, lon: 78.4867, aqi: 98, cat: "Moderate", pm25: 58, pm10: 98, co: 1100, so2: 11, no2: 38, o3: 32, rank: 115, temp: 28.5, humidity: 52, wind: 9.4, station: "Sanathnagar CAAQMS" },
-  { id: "ahmedabad", name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lon: 72.5714, aqi: 142, cat: "Poor", pm25: 94, pm10: 164, co: 1600, so2: 24, no2: 49, o3: 39, rank: 89, temp: 31.0, humidity: 44, wind: 8.1, station: "Maninagar CAAQMS Station" },
-  { id: "pune", name: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, aqi: 88, cat: "Moderate", pm25: 54, pm10: 88, co: 1000, so2: 14, no2: 32, o3: 26, rank: 124, temp: 26.2, humidity: 58, wind: 10.3, station: "Shivajinagar CAAQMS" },
-  { id: "lucknow", name: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lon: 80.9462, aqi: 184, cat: "Unhealthy", pm25: 178, pm10: 284, co: 2600, so2: 21, no2: 66, o3: 44, rank: 68, temp: 23.8, humidity: 65, wind: 5.4, station: "Talkatora CAAQMS Station" },
-  { id: "jaipur", name: "Jaipur", state: "Rajasthan", lat: 26.9124, lon: 75.7873, aqi: 148, cat: "Poor", pm25: 112, pm10: 210, co: 1800, so2: 19, no2: 51, o3: 38, rank: 85, temp: 28.0, humidity: 38, wind: 7.2, station: "Adarsh Nagar CAAQMS" },
-  { id: "patna", name: "Patna", state: "Bihar", lat: 25.5941, lon: 85.1376, aqi: 195, cat: "Unhealthy", pm25: 185, pm10: 295, co: 2900, so2: 26, no2: 69, o3: 45, rank: 62, temp: 25.0, humidity: 68, wind: 4.9, station: "Samarpal CAAQMS Station" },
-  { id: "kanpur", name: "Kanpur", state: "Uttar Pradesh", lat: 26.4499, lon: 80.3319, aqi: 178, cat: "Unhealthy", pm25: 162, pm10: 268, co: 2500, so2: 20, no2: 63, o3: 41, rank: 71, temp: 24.1, humidity: 64, wind: 5.8, station: "Nehru Nagar CAAQMS Station" },
-  { id: "varanasi", name: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lon: 82.9739, aqi: 164, cat: "Unhealthy", pm25: 145, pm10: 235, co: 2100, so2: 18, no2: 55, o3: 37, rank: 76, temp: 25.6, humidity: 63, wind: 6.1, station: "BHU CAAQMS Station" },
-  { id: "chandigarh", name: "Chandigarh", state: "Punjab", lat: 30.7333, lon: 76.7794, aqi: 110, cat: "Poor", pm25: 82, pm10: 138, co: 1300, so2: 12, no2: 36, o3: 30, rank: 104, temp: 22.4, humidity: 58, wind: 8.7, station: "Sector 22 CAAQMS Station" },
-  { id: "visakhapatnam", name: "Visakhapatnam", state: "Andhra Pradesh", lat: 17.6868, lon: 83.2185, aqi: 72, cat: "Moderate", pm25: 44, pm10: 72, co: 900, so2: 17, no2: 29, o3: 21, rank: 138, temp: 29.8, humidity: 76, wind: 15.2, station: "Gajuwaka CAAQMS" },
-  { id: "surat", name: "Surat", state: "Gujarat", lat: 21.1702, lon: 72.8311, aqi: 125, cat: "Poor", pm25: 78, pm10: 132, co: 1400, so2: 21, no2: 42, o3: 31, rank: 94, temp: 30.5, humidity: 66, wind: 11.5, station: "SVNIT CAAQMS" },
-  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, aqi: 92, cat: "Moderate", pm25: 66, pm10: 115, co: 1100, so2: 13, no2: 34, o3: 27, rank: 120, temp: 27.2, humidity: 49, wind: 9.0, station: "Paryavaran Parisar" },
-  { id: "indore", name: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, aqi: 98, cat: "Moderate", pm25: 72, pm10: 124, co: 1300, so2: 15, no2: 37, o3: 29, rank: 116, temp: 27.6, humidity: 47, wind: 9.8, station: "Chhoti Gwaltoli CAAQMS" },
-  { id: "kochi", name: "Kochi", state: "Kerala", lat: 9.9312, lon: 76.2673, aqi: 45, cat: "Good", pm25: 32, pm10: 52, co: 600, so2: 7, no2: 19, o3: 18, rank: 185, temp: 29.0, humidity: 82, wind: 13.8, station: "Vyttila CAAQMS Station" },
-  { id: "guwahati", name: "Guwahati", state: "Assam", lat: 26.1445, lon: 91.7362, aqi: 115, cat: "Poor", pm25: 88, pm10: 142, co: 1200, so2: 11, no2: 31, o3: 25, rank: 101, temp: 24.8, humidity: 72, wind: 6.4, station: "Railway Colony CAAQMS" }
+  // National Capital Region
+  { id: "delhi", name: "Delhi NCR", state: "Delhi (NCT)", lat: 28.6139, lon: 77.2090, aqi: 166, cat: "Unhealthy", pm25: 78, pm10: 159, co: 2661, so2: 5, no2: 3, o3: 4, rank: 74, temp: 34.0, humidity: 17, wind: 10.4, station: "Anand Vihar CAAQMS Station, Delhi" },
+  
+  // 28 Indian States
+  { id: "amaravati", name: "Amaravati", state: "Andhra Pradesh", lat: 16.5417, lon: 80.5158, aqi: 72, cat: "Moderate", pm25: 46, pm10: 74, co: 800, so2: 13, no2: 24, o3: 22, rank: 138, temp: 30.5, humidity: 72, wind: 12.0, station: "Secretariat CAAQMS, Amaravati" },
+  { id: "visakhapatnam", name: "Visakhapatnam", state: "Andhra Pradesh", lat: 17.6868, lon: 83.2185, aqi: 72, cat: "Moderate", pm25: 44, pm10: 72, co: 900, so2: 17, no2: 29, o3: 21, rank: 138, temp: 29.8, humidity: 76, wind: 15.2, station: "Gajuwaka CAAQMS, Visakhapatnam" },
+  { id: "itanagar", name: "Itanagar", state: "Arunachal Pradesh", lat: 27.0844, lon: 93.6053, aqi: 35, cat: "Good", pm25: 22, pm10: 38, co: 400, so2: 5, no2: 12, o3: 15, rank: 210, temp: 21.0, humidity: 68, wind: 5.2, station: "Ganga Lake CAAQMS, Itanagar" },
+  { id: "guwahati", name: "Guwahati", state: "Assam", lat: 26.1445, lon: 91.7362, aqi: 115, cat: "Poor", pm25: 88, pm10: 142, co: 1200, so2: 11, no2: 31, o3: 25, rank: 101, temp: 24.8, humidity: 72, wind: 6.4, station: "Railway Colony CAAQMS, Guwahati" },
+  { id: "patna", name: "Patna", state: "Bihar", lat: 25.5941, lon: 85.1376, aqi: 195, cat: "Unhealthy", pm25: 185, pm10: 295, co: 2900, so2: 26, no2: 69, o3: 45, rank: 62, temp: 25.0, humidity: 68, wind: 4.9, station: "Samarpal CAAQMS Station, Patna" },
+  { id: "raipur", name: "Raipur", state: "Chhattisgarh", lat: 21.2514, lon: 81.6296, aqi: 140, cat: "Poor", pm25: 92, pm10: 158, co: 1700, so2: 26, no2: 44, o3: 33, rank: 90, temp: 28.2, humidity: 54, wind: 8.3, station: "AIIMS CAAQMS, Raipur" },
+  { id: "panaji", name: "Panaji", state: "Goa", lat: 15.4909, lon: 73.8278, aqi: 42, cat: "Good", pm25: 28, pm10: 48, co: 600, so2: 8, no2: 16, o3: 20, rank: 195, temp: 31.0, humidity: 80, wind: 15.0, station: "Kadamba Bus Stand CAAQMS, Panaji" },
+  { id: "ahmedabad", name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lon: 72.5714, aqi: 142, cat: "Poor", pm25: 94, pm10: 164, co: 1600, so2: 24, no2: 49, o3: 39, rank: 89, temp: 31.0, humidity: 44, wind: 8.1, station: "Maninagar CAAQMS Station, Ahmedabad" },
+  { id: "surat", name: "Surat", state: "Gujarat", lat: 21.1702, lon: 72.8311, aqi: 125, cat: "Poor", pm25: 78, pm10: 132, co: 1400, so2: 21, no2: 42, o3: 31, rank: 94, temp: 30.5, humidity: 66, wind: 11.5, station: "SVNIT CAAQMS, Surat" },
+  { id: "gurugram", name: "Gurugram", state: "Haryana", lat: 28.4595, lon: 77.0266, aqi: 182, cat: "Unhealthy", pm25: 164, pm10: 260, co: 2700, so2: 20, no2: 68, o3: 42, rank: 70, temp: 24.8, humidity: 60, wind: 6.5, station: "Vikas Sadan CAAQMS, Gurugram" },
+  { id: "shimla", name: "Shimla", state: "Himachal Pradesh", lat: 31.1048, lon: 77.1734, aqi: 38, cat: "Good", pm25: 26, pm10: 42, co: 500, so2: 6, no2: 15, o3: 19, rank: 205, temp: 16.5, humidity: 48, wind: 7.8, station: "The Ridge CAAQMS Station, Shimla" },
+  { id: "ranchi", name: "Ranchi", state: "Jharkhand", lat: 23.3441, lon: 85.3096, aqi: 128, cat: "Poor", pm25: 84, pm10: 136, co: 1400, so2: 17, no2: 38, o3: 28, rank: 93, temp: 26.0, humidity: 56, wind: 8.0, station: "Doranda CAAQMS Station, Ranchi" },
+  { id: "bengaluru", name: "Bengaluru", state: "Karnataka", lat: 12.9716, lon: 77.5946, aqi: 62, cat: "Moderate", pm25: 38, pm10: 62, co: 800, so2: 8, no2: 26, o3: 22, rank: 145, temp: 23.0, humidity: 55, wind: 11.2, station: "Hebbal CAAQMS Station, Bengaluru" },
+  { id: "thiruvananthapuram", name: "Thiruvananthapuram", state: "Kerala", lat: 8.5241, lon: 76.9366, aqi: 44, cat: "Good", pm25: 30, pm10: 50, co: 600, so2: 7, no2: 18, o3: 17, rank: 190, temp: 29.5, humidity: 84, wind: 14.2, station: "Plammoodu CAAQMS, Thiruvananthapuram" },
+  { id: "kochi", name: "Kochi", state: "Kerala", lat: 9.9312, lon: 76.2673, aqi: 45, cat: "Good", pm25: 32, pm10: 52, co: 600, so2: 7, no2: 19, o3: 18, rank: 185, temp: 29.0, humidity: 82, wind: 13.8, station: "Vyttila CAAQMS Station, Kochi" },
+  { id: "bhopal", name: "Bhopal", state: "Madhya Pradesh", lat: 23.2599, lon: 77.4126, aqi: 92, cat: "Moderate", pm25: 66, pm10: 115, co: 1100, so2: 13, no2: 34, o3: 27, rank: 120, temp: 27.2, humidity: 49, wind: 9.0, station: "Paryavaran Parisar, Bhopal" },
+  { id: "indore", name: "Indore", state: "Madhya Pradesh", lat: 22.7196, lon: 75.8577, aqi: 98, cat: "Moderate", pm25: 72, pm10: 124, co: 1300, so2: 15, no2: 37, o3: 29, rank: 116, temp: 27.6, humidity: 47, wind: 9.8, station: "Chhoti Gwaltoli CAAQMS, Indore" },
+  { id: "mumbai", name: "Mumbai", state: "Maharashtra", lat: 19.0760, lon: 72.8777, aqi: 118, cat: "Poor", pm25: 68, pm10: 118, co: 1200, so2: 15, no2: 44, o3: 28, rank: 98, temp: 30.2, humidity: 78, wind: 14.5, station: "BKC Bandra CAAQMS Station, Mumbai" },
+  { id: "pune", name: "Pune", state: "Maharashtra", lat: 18.5204, lon: 73.8567, aqi: 88, cat: "Moderate", pm25: 54, pm10: 88, co: 1000, so2: 14, no2: 32, o3: 26, rank: 124, temp: 26.2, humidity: 58, wind: 10.3, station: "Shivajinagar CAAQMS, Pune" },
+  { id: "imphal", name: "Imphal", state: "Manipur", lat: 24.8170, lon: 93.9368, aqi: 48, cat: "Good", pm25: 36, pm10: 58, co: 700, so2: 7, no2: 17, o3: 21, rank: 182, temp: 23.5, humidity: 70, wind: 5.8, station: "DM College CAAQMS, Imphal" },
+  { id: "shillong", name: "Shillong", state: "Meghalaya", lat: 25.5788, lon: 91.8933, aqi: 36, cat: "Good", pm25: 24, pm10: 40, co: 500, so2: 5, no2: 14, o3: 16, rank: 208, temp: 18.0, humidity: 76, wind: 6.2, station: "Laban CAAQMS Station, Shillong" },
+  { id: "aizawl", name: "Aizawl", state: "Mizoram", lat: 23.7271, lon: 92.7176, aqi: 30, cat: "Good", pm25: 19, pm10: 34, co: 400, so2: 4, no2: 10, o3: 14, rank: 220, temp: 22.0, humidity: 65, wind: 4.8, station: "Chanmari CAAQMS Station, Aizawl" },
+  { id: "kohima", name: "Kohima", state: "Nagaland", lat: 25.6751, lon: 94.1086, aqi: 40, cat: "Good", pm25: 28, pm10: 46, co: 600, so2: 6, no2: 16, o3: 18, rank: 202, temp: 20.0, humidity: 72, wind: 5.4, station: "PR Hill CAAQMS Station, Kohima" },
+  { id: "bhubaneswar", name: "Bhubaneswar", state: "Odisha", lat: 20.2961, lon: 85.8245, aqi: 82, cat: "Moderate", pm25: 62, pm10: 104, co: 1100, so2: 16, no2: 32, o3: 26, rank: 128, temp: 29.4, humidity: 68, wind: 10.5, station: "Patia CAAQMS Station, Bhubaneswar" },
+  { id: "amritsar", name: "Amritsar", state: "Punjab", lat: 31.6340, lon: 74.8723, aqi: 158, cat: "Poor", pm25: 118, pm10: 188, co: 1900, so2: 18, no2: 46, o3: 34, rank: 80, temp: 22.8, humidity: 55, wind: 7.4, station: "Golden Temple CAAQMS, Amritsar" },
+  { id: "jaipur", name: "Jaipur", state: "Rajasthan", lat: 26.9124, lon: 75.7873, aqi: 148, cat: "Poor", pm25: 112, pm10: 210, co: 1800, so2: 19, no2: 51, o3: 38, rank: 85, temp: 28.0, humidity: 38, wind: 7.2, station: "Adarsh Nagar CAAQMS, Jaipur" },
+  { id: "gangtok", name: "Gangtok", state: "Sikkim", lat: 27.3389, lon: 88.6065, aqi: 32, cat: "Good", pm25: 21, pm10: 35, co: 400, so2: 5, no2: 11, o3: 15, rank: 215, temp: 17.2, humidity: 75, wind: 5.0, station: "MG Marg CAAQMS, Gangtok" },
+  { id: "chennai", name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lon: 80.2707, aqi: 76, cat: "Moderate", pm25: 48, pm10: 76, co: 900, so2: 12, no2: 28, o3: 24, rank: 132, temp: 31.4, humidity: 74, wind: 16.0, station: "Velachery CAAQMS Station, Chennai" },
+  { id: "hyderabad", name: "Hyderabad", state: "Telangana", lat: 17.3850, lon: 78.4867, aqi: 98, cat: "Moderate", pm25: 58, pm10: 98, co: 1100, so2: 11, no2: 38, o3: 32, rank: 115, temp: 28.5, humidity: 52, wind: 9.4, station: "Sanathnagar CAAQMS, Hyderabad" },
+  { id: "agartala", name: "Agartala", state: "Tripura", lat: 23.8315, lon: 91.2868, aqi: 75, cat: "Moderate", pm25: 56, pm10: 94, co: 1000, so2: 10, no2: 26, o3: 22, rank: 135, temp: 26.4, humidity: 74, wind: 6.8, station: "Kunjaban CAAQMS Station, Agartala" },
+  { id: "lucknow", name: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lon: 80.9462, aqi: 184, cat: "Unhealthy", pm25: 178, pm10: 284, co: 2600, so2: 21, no2: 66, o3: 44, rank: 68, temp: 23.8, humidity: 65, wind: 5.4, station: "Talkatora CAAQMS Station, Lucknow" },
+  { id: "kanpur", name: "Kanpur", state: "Uttar Pradesh", lat: 26.4499, lon: 80.3319, aqi: 178, cat: "Unhealthy", pm25: 162, pm10: 268, co: 2500, so2: 20, no2: 63, o3: 41, rank: 71, temp: 24.1, humidity: 64, wind: 5.8, station: "Nehru Nagar CAAQMS, Kanpur" },
+  { id: "varanasi", name: "Varanasi", state: "Uttar Pradesh", lat: 25.3176, lon: 82.9739, aqi: 164, cat: "Unhealthy", pm25: 145, pm10: 235, co: 2100, so2: 18, no2: 55, o3: 37, rank: 76, temp: 25.6, humidity: 63, wind: 6.1, station: "BHU CAAQMS Station, Varanasi" },
+  { id: "dehradun", name: "Dehradun", state: "Uttarakhand", lat: 30.3165, lon: 78.0322, aqi: 86, cat: "Moderate", pm25: 68, pm10: 112, co: 1200, so2: 12, no2: 31, o3: 27, rank: 126, temp: 21.5, humidity: 52, wind: 6.9, station: "Clock Tower CAAQMS, Dehradun" },
+  { id: "kolkata", name: "Kolkata", state: "West Bengal", lat: 22.5726, lon: 88.3639, aqi: 155, cat: "Poor", pm25: 128, pm10: 195, co: 1900, so2: 22, no2: 58, o3: 36, rank: 82, temp: 27.8, humidity: 70, wind: 7.5, station: "Victoria Memorial CAAQMS, Kolkata" },
+
+  // 8 Union Territories
+  { id: "chandigarh", name: "Chandigarh", state: "Chandigarh (UT)", lat: 30.7333, lon: 76.7794, aqi: 110, cat: "Poor", pm25: 82, pm10: 138, co: 1300, so2: 12, no2: 36, o3: 30, rank: 104, temp: 22.4, humidity: 58, wind: 8.7, station: "Sector 22 CAAQMS, Chandigarh" },
+  { id: "srinagar", name: "Srinagar", state: "Jammu & Kashmir (UT)", lat: 34.0837, lon: 74.7973, aqi: 58, cat: "Moderate", pm25: 42, pm10: 68, co: 900, so2: 8, no2: 22, o3: 20, rank: 150, temp: 15.8, humidity: 58, wind: 6.0, station: "Dal Lake CAAQMS, Srinagar" },
+  { id: "leh", name: "Leh Ladakh", state: "Ladakh (UT)", lat: 34.1526, lon: 77.5771, aqi: 25, cat: "Good", pm25: 16, pm10: 28, co: 300, so2: 4, no2: 9, o3: 24, rank: 230, temp: 8.5, humidity: 28, wind: 9.4, station: "Main Bazaar CAAQMS, Leh" },
+  { id: "puducherry", name: "Puducherry", state: "Puducherry (UT)", lat: 11.9416, lon: 79.8083, aqi: 52, cat: "Moderate", pm25: 38, pm10: 60, co: 700, so2: 9, no2: 21, o3: 20, rank: 155, temp: 30.8, humidity: 78, wind: 14.8, station: "Promenade Beach CAAQMS, Puducherry" },
+  { id: "portblair", name: "Port Blair", state: "Andaman & Nicobar Islands (UT)", lat: 11.6234, lon: 92.7265, aqi: 28, cat: "Good", pm25: 18, pm10: 32, co: 400, so2: 4, no2: 8, o3: 16, rank: 225, temp: 29.8, humidity: 85, wind: 16.5, station: "Aberdeen Jetty CAAQMS, Port Blair" },
+  { id: "daman", name: "Daman & Diu", state: "Dadra & Nagar Haveli and Daman & Diu (UT)", lat: 20.3974, lon: 72.8328, aqi: 68, cat: "Moderate", pm25: 48, pm10: 78, co: 900, so2: 11, no2: 25, o3: 22, rank: 142, temp: 30.2, humidity: 74, wind: 12.6, station: "Moti Daman CAAQMS, Daman" },
+  { id: "kavaratti", name: "Kavaratti", state: "Lakshadweep (UT)", lat: 10.5667, lon: 72.6417, aqi: 22, cat: "Good", pm25: 15, pm10: 26, co: 300, so2: 3, no2: 7, o3: 15, rank: 240, temp: 29.4, humidity: 82, wind: 15.4, station: "Lagoon CAAQMS, Kavaratti" }
 ];
 
 // App State
 let currentCityId = "delhi";
 let currentYear = 2026;
-let currentStandard = "us"; // "us" or "cpcb"
-let calendarMonths = [8, 9, 10]; // August, September, October
+let currentStandard = "us";
+let calendarMonths = [8, 9, 10];
 let mainLeafletMap = null;
 let miniLeafletMap = null;
+let aqiTileOverlayLayer = null;
+let miniAqiTileOverlayLayer = null;
 let mapMarkers = [];
 
 // Initialize Application
@@ -109,11 +140,18 @@ document.addEventListener("DOMContentLoaded", () => {
 function initApiKeys() {
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
+  const mapKey = localStorage.getItem("airsense_map_key") || "demo";
+  const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
   
   const elIqair = document.getElementById("inputIqairKey");
   const elOw = document.getElementById("inputOpenweatherKey");
+  const elMap = document.getElementById("inputMapKey");
+  const elSwitch = document.getElementById("toggleAqiTileOverlay");
+
   if (elIqair) elIqair.value = iqairKey;
   if (elOw) elOw.value = owKey;
+  if (elMap) elMap.value = mapKey;
+  if (elSwitch) elSwitch.checked = overlayEnabled;
 }
 
 // Event Listeners
@@ -151,6 +189,141 @@ function initEventListeners() {
   const btnCompute = document.getElementById("btnComputeAQI");
   if (btnCompute) {
     btnCompute.addEventListener("click", computeAqi);
+  }
+}
+
+// Dynamic Mascot SVG based on AQI values requested by user:
+// 1) AQI 1 to 50: DOES NOT wear mask, smiling face, fresh air
+// 2) AQI 50 to 100: COVERS nose and mouth with hand / cloth handkerchief
+// 3) AQI > 100: WEARS protective face mask with straps
+function getMascotSvg(aqi) {
+  if (aqi <= 50) {
+    // STATE 1: AQI 1 - 50 -> Does NOT wear mask! Smiling face, fresh air
+    return `
+      <div class="mascot-wrapper d-flex flex-column align-items-center">
+        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
+          <!-- Stylish Hair -->
+          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
+          <!-- Cheerful Happy Eyes (^_^) -->
+          <path d="M43 47C45 42 52 42 54 47" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+          <path d="M66 47C68 42 75 42 77 47" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+          <!-- Rosy cheeks -->
+          <circle cx="41" cy="55" r="4.5" fill="#F472B6" opacity="0.65"/>
+          <circle cx="79" cy="55" r="4.5" fill="#F472B6" opacity="0.65"/>
+          <!-- Cute Nose -->
+          <circle cx="60" cy="52" r="2" fill="#F59E0B"/>
+          <!-- Big Joyful Smile (NO MASK!) -->
+          <path d="M48 58C48 68 72 68 72 58" fill="#EF4444" stroke="#991B1B" stroke-width="2"/>
+          <path d="M53 62C56 60 64 60 67 62C66 66 54 66 53 62Z" fill="#FCA5A5"/>
+          <!-- Fresh air sparkle -->
+          <path d="M22 25L24 19L26 25L32 27L26 29L24 35L22 29L16 27L22 25Z" fill="#10B981"/>
+          <!-- Body in Clean Emerald Green Shirt -->
+          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#10B981"/>
+          <!-- Right arm waving cheerfully -->
+          <path d="M82 82L96 68" stroke="#10B981" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="98" cy="66" r="5" fill="#FCD34D"/>
+          <!-- Left arm relaxed -->
+          <path d="M38 82L28 105" stroke="#10B981" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
+          <!-- Legs & Shoes -->
+          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+        </svg>
+        <span class="badge bg-success text-white rounded-pill px-3 py-1 small fw-bold mt-1">
+          <i class="fa-solid fa-face-smile me-1"></i> AQI 1-50: Fresh Air (No Mask)
+        </span>
+      </div>
+    `;
+  } else if (aqi <= 100) {
+    // STATE 2: AQI 50 - 100 -> Covers nose and mouth with hand / cloth!
+    return `
+      <div class="mascot-wrapper d-flex flex-column align-items-center">
+        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
+          <!-- Hair -->
+          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
+          <!-- Cautious watchful eyes -->
+          <circle cx="48" cy="46" r="3.5" fill="#1E293B"/>
+          <circle cx="72" cy="46" r="3.5" fill="#1E293B"/>
+          <circle cx="50" cy="45" r="1.2" fill="#FFFFFF"/>
+          <circle cx="74" cy="45" r="1.2" fill="#FFFFFF"/>
+          <path d="M44 42L52 44" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+          <path d="M76 42L68 44" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
+          <!-- Blushing -->
+          <circle cx="42" cy="55" r="4" fill="#FBBF24" opacity="0.6"/>
+          <circle cx="78" cy="55" r="4" fill="#FBBF24" opacity="0.6"/>
+          <!-- Handkerchief / Hand covering nose & mouth -->
+          <path d="M44 54C44 50 76 50 76 54L72 70C72 72 48 72 48 70Z" fill="#E0F2FE" stroke="#0284C7" stroke-width="1.5"/>
+          <path d="M48 58L72 58" stroke="#BAE6FD" stroke-width="1.5"/>
+          <!-- Hand holding cloth over nose & mouth -->
+          <circle cx="66" cy="62" r="5" fill="#FCD34D" stroke="#D97706" stroke-width="1"/>
+          <!-- Amber Kurta -->
+          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#F59E0B"/>
+          <!-- Right arm raised covering nose and mouth -->
+          <path d="M82 82L68 64" stroke="#F59E0B" stroke-width="7" stroke-linecap="round"/>
+          <!-- Left arm down -->
+          <path d="M38 82L28 105" stroke="#F59E0B" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
+          <!-- Legs & Shoes -->
+          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+        </svg>
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 small fw-bold mt-1">
+          <i class="fa-solid fa-hand me-1"></i> AQI 50-100: Covering Nose &amp; Mouth
+        </span>
+      </div>
+    `;
+  } else {
+    // STATE 3: AQI > 100 -> Wears protective face mask (Photo 3 exact match)
+    return `
+      <div class="mascot-wrapper d-flex flex-column align-items-center">
+        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
+          <!-- Hair -->
+          <path d="M32 45C32 25 45 15 60 15C75 15 88 25 88 45C88 35 75 25 60 25C45 25 32 35 32 45Z" fill="#1E293B"/>
+          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
+          <!-- Concerned downward eyes -->
+          <path d="M46 45L54 48" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M74 45L66 48" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Rosy cheeks -->
+          <circle cx="43" cy="54" r="4" fill="#F87171" opacity="0.6"/>
+          <circle cx="77" cy="54" r="4" fill="#F87171" opacity="0.6"/>
+          <!-- Protective Face Mask -->
+          <rect x="42" y="52" width="36" height="22" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+          <line x1="42" y1="58" x2="78" y2="58" stroke="#E2E8F0" stroke-width="1.5"/>
+          <line x1="42" y1="65" x2="78" y2="65" stroke="#E2E8F0" stroke-width="1.5"/>
+          <!-- Mask Ear Straps -->
+          <path d="M42 56L34 52" stroke="#CBD5E1" stroke-width="1.5"/>
+          <path d="M42 68L34 62" stroke="#CBD5E1" stroke-width="1.5"/>
+          <path d="M78 56L86 52" stroke="#CBD5E1" stroke-width="1.5"/>
+          <path d="M78 68L86 62" stroke="#CBD5E1" stroke-width="1.5"/>
+          <!-- Body & Kurta (Pink Kurta from Photo 3) -->
+          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#EC4899"/>
+          <rect x="58" y="74" width="4" height="26" fill="#F43F5E"/>
+          <!-- Arms -->
+          <path d="M38 82L28 105" stroke="#EC4899" stroke-width="7" stroke-linecap="round"/>
+          <path d="M82 82L92 105" stroke="#EC4899" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
+          <circle cx="92" cy="107" r="4" fill="#FCD34D"/>
+          <!-- Legs & Shoes -->
+          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
+          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
+        </svg>
+        <span class="badge bg-danger text-white rounded-pill px-3 py-1 small fw-bold mt-1">
+          <i class="fa-solid fa-head-side-mask me-1"></i> AQI > 100: Face Mask Mandatory!
+        </span>
+      </div>
+    `;
   }
 }
 
@@ -227,8 +400,8 @@ function generateClientCityData(city) {
       color: getAqiColor(aqiVal)
     },
     major_pollutants: [
-      { id: "pm25", name: "Particulate Matter", symbol: "(PM2.5)", value: pm25Val, unit: "µg/m³", color: "#FF7E00", alert: false },
-      { id: "pm10", name: "Particulate Matter", symbol: "(PM10)", value: pm10Val, unit: "µg/m³", color: "#FF7E00", alert: true },
+      { id: "pm25", name: "Particulate Matter", symbol: "(PM2.5)", value: pm25Val, unit: "µg/m³", color: getAqiColor(aqiVal), alert: false },
+      { id: "pm10", name: "Particulate Matter", symbol: "(PM10)", value: pm10Val, unit: "µg/m³", color: getAqiColor(aqiVal), alert: aqiVal > 100 },
       { id: "co", name: "Carbon Monoxide", symbol: "(CO)", value: coVal, unit: "ppb", color: "#00E400", alert: false },
       { id: "so2", name: "Sulfur Dioxide", symbol: "(SO2)", value: so2Val, unit: "ppb", color: "#00E400", alert: false },
       { id: "no2", name: "Nitrogen Dioxide", symbol: "(NO2)", value: no2Val, unit: "ppb", color: "#00E400", alert: false },
@@ -237,7 +410,7 @@ function generateClientCityData(city) {
   };
 }
 
-// Render Hero Section (Photo 3)
+// Render Hero Section (Photo 3) with Dynamic Mascot State
 function renderHero(data) {
   const info = data.city_info;
   const aqi = data.aqi_data.aqi;
@@ -249,7 +422,7 @@ function renderHero(data) {
   if (title) title.textContent = `${info.name} Air Quality Index (AQI) | Air Pollution`;
 
   const sub = document.getElementById("heroCitySubtitle");
-  if (sub) sub.textContent = `Real-time PM2.5, PM10 air pollution level in ${info.name}`;
+  if (sub) sub.textContent = `Real-time PM2.5, PM10 air pollution level in ${info.name} (${info.state})`;
 
   const time = document.getElementById("lastUpdatedTime");
   if (time) time.textContent = info.timestamp;
@@ -289,6 +462,12 @@ function renderHero(data) {
   if (pm10El) {
     const p10 = data.major_pollutants ? data.major_pollutants.find(p => p.id === 'pm10') : null;
     pm10El.textContent = p10 ? p10.value : (data.raw_pollutants ? Math.round(data.raw_pollutants.pm10) : 159);
+  }
+
+  // Dynamic Mascot Rendering (1-50 no mask, 50-100 covers nose & mouth, >100 wears mask)
+  const mascotBox = document.getElementById("heroMascotContainer");
+  if (mascotBox) {
+    mascotBox.innerHTML = getMascotSvg(aqi);
   }
 
   // Weather Card in Hero
@@ -450,7 +629,6 @@ function generateClientCalendar(cityId, year, months) {
 
   const isDelhi = cityId.toLowerCase().includes("delhi");
   
-  // Exact values from Photo 2 for Delhi
   const photoValues = {
     8: { 1: 127, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95 },
     9: { 1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108, 9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145, 16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164, 23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144 },
@@ -461,10 +639,9 @@ function generateClientCalendar(cityId, year, months) {
 
   months.forEach(m => {
     const daysInMonth = new Date(year, m, 0).getDate();
-    const firstDayIndex = new Date(year, m - 1, 1).getDay(); // 0 is Sunday
+    const firstDayIndex = new Date(year, m - 1, 1).getDay();
     const daysData = [];
 
-    // Preceding empty cells
     for (let i = 0; i < firstDayIndex; i++) {
       daysData.push(null);
     }
@@ -508,25 +685,53 @@ window.nextCalendarMonths = function() {
   renderCalendar(currentCityId, currentYear, calendarMonths);
 };
 
-// Initialize Leaflet Maps
+// Initialize Leaflet Maps with Map API Key & Heat Tile Overlay Layer
 function initMaps() {
+  const mapKey = localStorage.getItem("airsense_map_key") || "demo";
+  const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
+
   // 1. Mini Map in Hero (Photo 3)
   const miniEl = document.getElementById("miniMap");
   if (miniEl && !miniLeafletMap) {
     miniLeafletMap = L.map("miniMap", { zoomControl: false, attributionControl: false }).setView([28.6139, 77.2090], 11);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 18 }).addTo(miniLeafletMap);
+
+    if (overlayEnabled) {
+      miniAqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {
+        maxZoom: 18,
+        opacity: 0.65
+      }).addTo(miniLeafletMap);
+    }
   }
 
   // 2. Main India Interactive Map
   const mapEl = document.getElementById("indiaMap");
   if (mapEl && !mainLeafletMap) {
     mainLeafletMap = L.map("indiaMap").setView([22.5, 79.5], 5);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    const baseTile = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
       maxZoom: 18,
       attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mainLeafletMap);
 
-    // Plot all 20 cities on map
+    // Live Air Quality Tile Overlay Layer using Map API Token
+    aqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {
+      maxZoom: 18,
+      opacity: 0.65,
+      attribution: 'Live AQI Heatmap &copy; <a href="https://waqi.info">WAQI.info</a>'
+    });
+
+    if (overlayEnabled) {
+      aqiTileOverlayLayer.addTo(mainLeafletMap);
+    }
+
+    // Add Layer Control so user can toggle AQI Heatmap Layer easily
+    L.control.layers(
+      { "Carto Light Map": baseTile },
+      { "Live Air Quality Heatmap Layer": aqiTileOverlayLayer },
+      { position: "topright" }
+    ).addTo(mainLeafletMap);
+
+    // Plot all 28 Indian States & 8 Union Territories
     INDIAN_CITIES_LIST.forEach(city => {
       const color = getAqiColor(city.aqi);
       const icon = L.divIcon({
@@ -539,13 +744,14 @@ function initMaps() {
       const marker = L.marker([city.lat, city.lon], { icon: icon }).addTo(mainLeafletMap);
       marker.bindPopup(`
         <div style="font-family: Inter, sans-serif; padding: 4px;">
-          <h6 style="margin: 0 0 4px 0; font-weight: 800; color: #0F172A;">${city.name}</h6>
-          <div style="font-size: 0.8rem; color: #64748B;">${city.station}</div>
+          <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #0F172A;">${city.name}</h6>
+          <div style="font-size: 0.78rem; font-weight: 600; color: #0284C7;">${city.state}</div>
+          <div style="font-size: 0.75rem; color: #64748B; margin-top: 2px;">${city.station}</div>
           <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
             <span style="background: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem;">AQI ${city.aqi}</span>
             <span style="font-size: 0.8rem; font-weight: 600; color: #0F172A;">${city.cat}</span>
           </div>
-          <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View City Telemetry</button>
+          <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View State/City Telemetry</button>
         </div>
       `);
 
@@ -666,6 +872,12 @@ window.computeAqi = function() {
   const domEl = document.getElementById("calcResultDominant");
   if (domEl) domEl.textContent = dominant;
 
+  // Render Mascot in Calculator result matching the computed AQI
+  const calcMascot = document.getElementById("calcMascotContainer");
+  if (calcMascot) {
+    calcMascot.innerHTML = getMascotSvg(maxSub);
+  }
+
   // Render Breakdown Table
   const tableBody = document.getElementById("calcStepsTableBody");
   if (tableBody) {
@@ -777,14 +989,32 @@ window.populateCalculatorPollutant = function(pollutantId, val) {
 window.saveApiKeys = function() {
   const iqairKey = document.getElementById("inputIqairKey").value.trim();
   const owKey = document.getElementById("inputOpenweatherKey").value.trim();
+  const mapKey = document.getElementById("inputMapKey").value.trim();
+  const overlayEnabled = document.getElementById("toggleAqiTileOverlay").checked;
 
   localStorage.setItem("airsense_iqair_key", iqairKey);
   localStorage.setItem("airsense_openweather_key", owKey);
+  localStorage.setItem("airsense_map_key", mapKey);
+  localStorage.setItem("airsense_aqi_overlay_enabled", overlayEnabled ? "true" : "false");
+
+  // Update map layer if map exists
+  if (mainLeafletMap && aqiTileOverlayLayer) {
+    if (overlayEnabled) {
+      aqiTileOverlayLayer.setUrl("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + (mapKey || "demo"));
+      if (!mainLeafletMap.hasLayer(aqiTileOverlayLayer)) {
+        aqiTileOverlayLayer.addTo(mainLeafletMap);
+      }
+    } else {
+      if (mainLeafletMap.hasLayer(aqiTileOverlayLayer)) {
+        mainLeafletMap.removeLayer(aqiTileOverlayLayer);
+      }
+    }
+  }
 
   const alertBox = document.getElementById("apiKeyStatusAlert");
   const alertText = document.getElementById("apiKeyStatusText");
   if (alertBox && alertText) {
-    alertText.textContent = "API Keys saved successfully! Refreshing telemetry...";
+    alertText.textContent = "API Keys & Map Settings saved successfully! Refreshing telemetry...";
     alertBox.classList.remove("d-none");
   }
 
@@ -807,7 +1037,6 @@ window.locateUser = function() {
       const userLat = pos.coords.latitude;
       const userLon = pos.coords.longitude;
       
-      // Find nearest city
       let nearest = INDIAN_CITIES_LIST[0];
       let minDist = 999999;
       INDIAN_CITIES_LIST.forEach(c => {
@@ -828,7 +1057,7 @@ window.locateUser = function() {
 // Share AQI
 window.shareAQI = function() {
   const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
-  const shareText = `Live Air Quality in ${city.name}: AQI ${city.aqi} (${city.cat}). Checked on AirSense India!`;
+  const shareText = `Live Air Quality in ${city.name} (${city.state}): AQI ${city.aqi} (${city.cat}). Checked on AirSense India!`;
   if (navigator.share) {
     navigator.share({ title: "AirSense India", text: shareText, url: window.location.href });
   } else {
