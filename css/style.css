@@ -1,34 +1,53 @@
-/* AirSense India - Modern Glassmorphic Dark/Light Hybrid Theme */
+/* AirSense India - Ice Silver, Deep Aubergine & Marigold Theme */
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --bg-main: #0b1120;
-  --bg-card: #151e32;
-  --bg-card-hover: #1c2742;
-  --border-color: rgba(255, 255, 255, 0.08);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --aqi-good: #10b981;
-  --aqi-satisfactory: #84cc16;
-  --aqi-moderate: #f59e0b;
-  --aqi-poor: #f97316;
-  --aqi-verypoor: #ef4444;
-  --aqi-severe: #7c3aed;
+  /* Brand Theme Colors */
+  --aubergine-deep: #13091B;
+  --aubergine-base: #1A0C26;
+  --aubergine-card: #231034;
+  --aubergine-card-hover: #2D1543;
+  --aubergine-surface: #1E0D2E;
+  
+  --marigold: #F59E0B;
+  --marigold-glow: #FFA800;
+  --marigold-hover: #D97706;
+  --marigold-light: rgba(245, 158, 11, 0.18);
+  --marigold-border: rgba(245, 158, 11, 0.4);
+
+  --ice-silver-100: #F8FAFC;
+  --ice-silver-200: #F1F5F9;
+  --ice-silver-300: #E2E8F0;
+  --ice-silver-400: #CBD5E1;
+  --ice-silver-muted: #94A3B8;
+  --ice-silver-border: rgba(226, 232, 240, 0.15);
+
+  --border-color: rgba(245, 158, 11, 0.12);
+  --border-silver: rgba(226, 232, 240, 0.1);
+
+  /* CPCB AQI Category Spectrum Colors */
+  --aqi-good: #10B981;
+  --aqi-satisfactory: #84CC16;
+  --aqi-moderate: #F59E0B;
+  --aqi-poor: #F97316;
+  --aqi-verypoor: #EF4444;
+  --aqi-severe: #A855F7;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: var(--bg-main);
-  color: var(--text-main);
+  background-color: var(--aubergine-deep);
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.09) 0%, transparent 45%);
+  color: var(--ice-silver-200);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Glassmorphic Navbar */
+/* Glassmorphic Navbar in Deep Aubergine */
 .navbar-custom {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(19, 9, 27, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
@@ -36,63 +55,75 @@ body {
 }
 
 .brand-badge {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-  color: white;
-  padding: 4px 10px;
+  background: linear-gradient(135deg, #FFA800 0%, #C026D3 100%);
+  color: #13091B;
+  font-weight: 800;
+  padding: 4px 12px;
   border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
 }
 
-/* Modern Glass Cards */
+.nav-link {
+  color: var(--ice-silver-400) !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--marigold) !important;
+}
+
+/* Deep Aubergine & Ice Silver Glass Cards */
 .glass-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: rgba(35, 16, 52, 0.78);
+  border: 1px solid var(--border-silver);
   border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 32px 0 rgba(11, 5, 16, 0.6);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 12px 36px 0 rgba(19, 9, 27, 0.8);
 }
 
 .card-title-custom {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e2e8f0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ice-silver-100);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* Hero Section */
+/* Hero Section with Marigold & Aubergine Atmosphere */
 .hero-banner {
-  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 50%),
-              radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 50%);
-  padding: 2.5rem 0 1.5rem 0;
+  background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.15), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(88, 28, 135, 0.25), transparent 50%);
+  padding: 2.2rem 0 1.5rem 0;
   border-bottom: 1px solid var(--border-color);
 }
 
-/* Big AQI Display Gauge */
+/* Big AQI Circular Gauge */
 .aqi-circle-badge {
-  width: 170px;
-  height: 170px;
+  width: 175px;
+  height: 175px;
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 35px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.6);
   margin: 0 auto;
   position: relative;
-  border: 4px solid rgba(255, 255, 255, 0.2);
+  border: 4px solid rgba(241, 245, 249, 0.3);
   transition: all 0.4s ease;
 }
 
 .aqi-circle-value {
-  font-size: 3.5rem;
-  font-weight: 800;
+  font-size: 3.8rem;
+  font-weight: 900;
   line-height: 1;
 }
 
@@ -100,77 +131,140 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 4px;
 }
 
 /* Pollutant Cards Grid */
 .pollutant-card {
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(30, 14, 45, 0.85);
+  border: 1px solid rgba(226, 232, 240, 0.08);
   border-radius: 12px;
   padding: 14px 16px;
   transition: all 0.2s ease;
 }
 
 .pollutant-card:hover {
-  background: rgba(30, 41, 59, 0.9);
+  background: rgba(43, 20, 64, 0.95);
   transform: translateY(-2px);
-  border-color: rgba(59, 130, 246, 0.3);
+  border-color: var(--marigold-border);
 }
 
 .pollutant-val {
   font-size: 1.6rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: var(--ice-silver-100);
 }
 
 .pollutant-unit {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--ice-silver-muted);
 }
 
-/* Nav tabs */
-.nav-pills-custom .nav-link {
-  color: var(--text-muted);
-  border-radius: 10px;
-  padding: 8px 18px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.nav-pills-custom .nav-link.active {
-  background-color: var(--primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-}
-
-/* Leaflet Map */
+/* Interactive India Map */
 #indiaMap {
   height: 520px;
   width: 100%;
   border-radius: 14px;
-  z-index: 10;
+  z-index: 1;
+  background-color: var(--aubergine-base);
+  border: 1px solid var(--border-silver);
 }
 
-/* Custom Leaflet Map Dark Mode Styling */
-.leaflet-tile {
-  filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+/* Custom Popup for Leaflet Map */
+.leaflet-popup-content-wrapper {
+  background: #1A0C26 !important;
+  color: #F8FAFC !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  padding: 4px !important;
 }
 
-/* Forecast Card */
-.forecast-card {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.25s ease;
+.leaflet-popup-tip {
+  background: #1A0C26 !important;
 }
 
-.forecast-card:hover {
-  transform: translateY(-4px);
-  background: rgba(30, 41, 59, 0.85);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+.custom-map-tooltip {
+  background: #13091B !important;
+  color: #F8FAFC !important;
+  border: 1px solid #F59E0B !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+}
+
+/* Chart container helpers */
+.chart-container-custom {
+  position: relative;
+  height: 310px;
+  width: 100%;
+}
+
+/* Buttons in Marigold & Ice Silver */
+.btn-primary {
+  background: linear-gradient(135deg, #FFA800 0%, #F59E0B 100%) !important;
+  border: 1px solid #D97706 !important;
+  color: #13091B !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(135deg, #FFB81C 0%, #FFA800 100%) !important;
+  color: #0B0410 !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+  border-color: var(--marigold) !important;
+  color: var(--marigold) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--marigold) !important;
+  color: #13091B !important;
+}
+
+.btn-outline-light {
+  border-color: var(--ice-silver-border) !important;
+  color: var(--ice-silver-300) !important;
+}
+
+.btn-outline-light:hover {
+  background-color: rgba(241, 245, 249, 0.12) !important;
+  color: #ffffff !important;
+  border-color: var(--ice-silver-300) !important;
+}
+
+/* Custom Form Controls */
+.form-control-custom, .form-select-custom {
+  background-color: var(--aubergine-base);
+  border: 1px solid var(--border-silver);
+  color: var(--ice-silver-200);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.form-control-custom:focus, .form-select-custom:focus {
+  background-color: var(--aubergine-base);
+  border-color: var(--marigold);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
+/* Spectrum Pill */
+.spectrum-pill {
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* Category colors */
@@ -181,37 +275,33 @@ body {
 .bg-verypoor { background-color: var(--aqi-verypoor) !important; color: white !important; }
 .bg-severe { background-color: var(--aqi-severe) !important; color: white !important; }
 
-.text-good { color: var(--aqi-good) !important; }
-.text-satisfactory { color: var(--aqi-satisfactory) !important; }
-.text-moderate { color: var(--aqi-moderate) !important; }
-.text-poor { color: var(--aqi-poor) !important; }
-.text-verypoor { color: var(--aqi-verypoor) !important; }
-.text-severe { color: var(--aqi-severe) !important; }
-
-/* Custom Form Controls */
-.form-control-custom, .form-select-custom {
-  background-color: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
-  border-radius: 10px;
-  padding: 10px 14px;
-}
-
-.form-control-custom:focus, .form-select-custom:focus {
-  background-color: #0f172a;
-  border-color: #3b82f6;
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-}
+.text-marigold { color: var(--marigold) !important; }
+.text-silver { color: var(--ice-silver-300) !important; }
 
 /* Sub-index calculation step box */
 .calc-step-box {
-  background: rgba(15, 23, 42, 0.6);
-  border-left: 4px solid var(--primary);
+  background: var(--aubergine-base);
+  border-left: 4px solid var(--marigold);
   padding: 12px 16px;
   border-radius: 6px;
   font-family: 'Fira Code', monospace;
   font-size: 0.85rem;
+}
+
+/* Table in Dark Aubergine */
+.table-dark {
+  background-color: transparent !important;
+  --bs-table-bg: transparent !important;
+}
+
+.table-dark th {
+  color: var(--marigold) !important;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.table-dark td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: var(--ice-silver-300) !important;
 }
 
 /* Pulse alert animation */
@@ -231,7 +321,7 @@ body {
     background-color: white !important;
     color: black !important;
   }
-  .navbar-custom, .btn, .no-print {
+  .navbar-custom, .btn, .no-print, #mapSection {
     display: none !important;
   }
   .glass-card {
