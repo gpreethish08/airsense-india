@@ -1,7 +1,7 @@
 /**
  * AirSense India - Web Application Client Logic
  * Author: Preethish (College Project)
- * Real-time CPCB Sub-Index AQI, Interactive India Map, Diurnal Trends & Analytics
+ * Real-time CPCB Sub-Index AQI, Interactive India Map, and CPCB Calculator
  */
 
 // Official CPCB Breakpoints: [B_lo, B_hi, I_lo, I_hi]
@@ -156,7 +156,7 @@ function getAQICategory(aqi) {
   } else if (aqi <= 400) {
     return { name: "Very Poor", color: "#EF4444", textColor: "#ffffff", desc: "Respiratory illness on prolonged exposure. Significant risk for elderlies and children." };
   } else {
-    return { name: "Severe", color: "#7C3AED", textColor: "#ffffff", desc: "Emergency condition. Seriously affects healthy people and severely impacts sensitive groups." };
+    return { name: "Severe", color: "#A855F7", textColor: "#ffffff", desc: "Emergency condition. Seriously affects healthy people and severely impacts sensitive groups." };
   }
 }
 
@@ -205,29 +205,22 @@ function calculateOverallAQI(pollutants) {
 let currentCity = INDIAN_CITIES_DATA[0];
 let leafletMap = null;
 let mapMarkers = [];
-let hourlyChartInstance = null;
-let compareChartInstance = null;
-let seasonalChartInstance = null;
 let alertThreshold = 200;
 
 // Initialize Web Application with Safety Guards
 document.addEventListener("DOMContentLoaded", () => {
   initCitySelector();
-  initCharts();       // Create chart instances first so they are ready
-  initIndiaMap();     // Initialize interactive map
+  initIndiaMap();
   loadCityData("delhi");
   initCalculatorControls();
   initAlertControls();
 });
 
-// Additional window load trigger to guarantee map size and charts rendering
+// Additional window load trigger to guarantee map size rendering
 window.addEventListener("load", () => {
   setTimeout(() => {
     if (leafletMap) {
       leafletMap.invalidateSize();
-    }
-    if (hourlyChartInstance) {
-      hourlyChartInstance.resize();
     }
   }, 250);
 });
@@ -264,16 +257,16 @@ async function loadCityData(cityId) {
   }
 
   if (backendData) {
-    applyCityData(backendData.city_info, backendData.aqi_data, backendData.health_advisory, backendData.raw_pollutants, backendData.hourly_trend);
+    applyCityData(backendData.city_info, backendData.aqi_data);
   } else {
     const city = INDIAN_CITIES_DATA.find(c => c.id === cityId) || INDIAN_CITIES_DATA[0];
     const aqiRes = calculateOverallAQI(city.pollutants);
-    applyCityData(city, aqiRes, null, city.pollutants, null);
+    applyCityData(city, aqiRes);
   }
 }
 
 // Unified UI update function
-function applyCityData(info, aqi, advisory, pollutants, hourlyTrend) {
+function applyCityData(info, aqi) {
   currentCity = INDIAN_CITIES_DATA.find(c => c.id === info.id) || currentCity;
 
   // Header display
@@ -320,15 +313,6 @@ function applyCityData(info, aqi, advisory, pollutants, hourlyTrend) {
   const windEl = document.getElementById("weatherWind");
   if (windEl) windEl.textContent = `${info.wind_speed || info.wind || 6.5} km/h`;
 
-  // Render Pollutant Grid Cards
-  renderPollutantCards(pollutants, aqi.sub_indices || aqi.subIndices);
-
-  // Render Health Advisory
-  renderHealthAdvice(aqiCategoryName);
-
-  // Update Trends & Analytics Chart
-  updateHourlyChart(aqiScore, info.name, hourlyTrend);
-
   // Check alert threshold
   checkAlertThreshold(aqiScore, info.name);
 
@@ -338,131 +322,10 @@ function applyCityData(info, aqi, advisory, pollutants, hourlyTrend) {
   }
 }
 
-// Render Pollutant Cards Grid
-function renderPollutantCards(pollutants, subIndices) {
-  const container = document.getElementById("pollutantCardsContainer");
-  if (!container) return;
-
-  container.innerHTML = "";
-  const list = [
-    { key: "pm25", label: "PM2.5", desc: "Fine Particulate matter (< 2.5 µm)" },
-    { key: "pm10", label: "PM10", desc: "Coarse Dust & Particulates (< 10 µm)" },
-    { key: "no2", label: "NO₂", desc: "Nitrogen Dioxide (Vehicular)" },
-    { key: "so2", label: "SO₂", desc: "Sulphur Dioxide (Thermal / Fuels)" },
-    { key: "co", label: "CO", desc: "Carbon Monoxide (Combustion)" },
-    { key: "o3", label: "O₃", desc: "Ozone (Photochemical Smog)" },
-    { key: "nh3", label: "NH₃", desc: "Ammonia (Agricultural/Waste)" }
-  ];
-
-  list.forEach(item => {
-    const val = pollutants[item.key] || 0;
-    const subIdx = subIndices ? subIndices[item.key] || 0 : 0;
-    const cat = getAQICategory(subIdx);
-    const unit = POLLUTANT_UNITS[item.key];
-
-    const col = document.createElement("div");
-    col.className = "col-md-3 col-sm-6 mb-3";
-    col.innerHTML = `
-      <div class="pollutant-card h-100">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <span class="fw-bold fs-6">${item.label}</span>
-          <span class="badge" style="background-color: ${cat.color}; color: ${cat.textColor}">${cat.name}</span>
-        </div>
-        <div class="d-flex align-items-baseline gap-2">
-          <span class="pollutant-val text-white">${val}</span>
-          <span class="pollutant-unit">${unit}</span>
-        </div>
-        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top border-secondary border-opacity-25">
-          <small class="text-muted">Sub-Index:</small>
-          <span class="fw-bold" style="color: ${cat.color}">${subIdx}</span>
-        </div>
-        <small class="text-muted d-block mt-1" style="font-size: 0.72rem">${item.desc}</small>
-      </div>
-    `;
-    container.appendChild(col);
-  });
-}
-
-// Render Health Advice Cards
-function renderHealthAdvice(category) {
-  const container = document.getElementById("healthAdviceContainer");
-  if (!container) return;
-
-  const advisories = {
-    Good: {
-      mask: "No mask required. Fresh and healthy air for everyone.",
-      outdoor: "Ideal conditions for jogging, outdoor sports, cycling, and park visits.",
-      sensitive: "Safe for everyone, including infants and senior citizens.",
-      indoor: "Keep windows wide open for natural air ventilation."
-    },
-    Satisfactory: {
-      mask: "Mask not needed for general public. Sensitive individuals may opt for comfort.",
-      outdoor: "Normal outdoor activities are safe for healthy adults.",
-      sensitive: "Hypersensitive individuals with chronic asthma may feel minor irritation.",
-      indoor: "Natural ventilation is safe during daytime hours."
-    },
-    Moderate: {
-      mask: "N95 mask recommended for respiratory and heart patients during traffic hours.",
-      outdoor: "Healthy adults can exercise outside; avoid heavy exertion near busy highways.",
-      sensitive: "Children and elderly should take frequent breaks during active play.",
-      indoor: "Keep windows shut during early morning smog or late night inversion."
-    },
-    Poor: {
-      mask: "N95 / FFP2 respirator mask strongly advised outdoors.",
-      outdoor: "Limit prolonged outdoor exertion. Shift workouts indoors.",
-      sensitive: "Elderly and children must limit outdoor time. Keep rescue inhalers handy.",
-      indoor: "Use HEPA air purifier in bedrooms; seal window draughts."
-    },
-    Very Poor: {
-      mask: "Mandatory N95 / FFP3 mask outdoors; cloth masks offer negligible protection.",
-      outdoor: "Strictly avoid outdoor jogging and school athletic events.",
-      sensitive: "Children and elderly must stay indoors. High likelihood of wheezing & cough.",
-      indoor: "Run air purifiers at max fan speed. Use wet mopping to capture dust."
-    },
-    Severe: {
-      mask: "Respirator mandatory. Minimize all outdoor exposure to zero.",
-      outdoor: "Emergency conditions. Cancel all outdoor activities immediately.",
-      sensitive: "High risk of acute cardiovascular and respiratory distress. Seek medical help.",
-      indoor: "Keep all windows, doors, and vents completely sealed. Continuous HEPA filtration."
-    }
-  };
-
-  const adv = advisories[category] || advisories.Moderate;
-  container.innerHTML = `
-    <div class="row g-3">
-      <div class="col-md-6">
-        <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
-          <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-mask me-2 text-primary"></i>Mask Recommendation</h6>
-          <p class="text-light mb-1 small">${adv.mask}</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
-          <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-person-running me-2 text-primary"></i>Outdoor Workouts & Sports</h6>
-          <p class="text-light mb-1 small">${adv.outdoor}</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
-          <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-child me-2 text-primary"></i>Children & Elderly Care</h6>
-          <p class="text-light mb-1 small">${adv.sensitive}</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="p-3 rounded glass-card border border-secondary border-opacity-25 h-100">
-          <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-house-chimney-window me-2 text-primary"></i>Indoor Air & Purifier Advice</h6>
-          <p class="text-light mb-1 small">${adv.indoor}</p>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 // Interactive India Map (Robust Initialization with Zero Broken Tiles)
 function initIndiaMap() {
   const mapElement = document.getElementById("indiaMap");
   if (!mapElement || typeof L === 'undefined') {
-    console.warn("Leaflet library or map element not ready yet.");
     return;
   }
 
@@ -477,7 +340,6 @@ function initIndiaMap() {
   }
 
   try {
-    // Center mainland India
     leafletMap = L.map("indiaMap", {
       center: [22.5, 79.0],
       zoom: 5,
@@ -486,7 +348,6 @@ function initIndiaMap() {
       scrollWheelZoom: true
     });
 
-    // High-reliability OpenStreetMap tile layer (Clean, standard, bright tiles)
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
@@ -494,7 +355,7 @@ function initIndiaMap() {
 
     mapMarkers = [];
 
-    // Add vibrant circular markers for all 20 cities
+    // Add circular markers for all 20 cities
     INDIAN_CITIES_DATA.forEach(city => {
       const aqiRes = calculateOverallAQI(city.pollutants);
 
@@ -523,9 +384,9 @@ function initIndiaMap() {
             AQI: ${aqiRes.aqi} &bull; ${aqiRes.category}
           </div>
           <div style="font-size: 0.75rem; color: #cbd5e1; margin-bottom: 8px;">
-            Dominant: <strong style="color: #60a5fa;">${aqiRes.dominantName}</strong>
+            Dominant: <strong style="color: #F59E0B;">${aqiRes.dominantName}</strong>
           </div>
-          <button onclick="window.selectCityFromMap('${city.id}')" style="width: 100%; background: #2563eb; color: #ffffff; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+          <button onclick="window.selectCityFromMap('${city.id}')" style="width: 100%; background: #F59E0B; color: #13091B; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
             <i class="fa-solid fa-gauge me-1"></i> View Full Dashboard
           </button>
         </div>
@@ -534,7 +395,7 @@ function initIndiaMap() {
       mapMarkers.push(marker);
     });
 
-    // Invalidate map size multiple times to ensure full render
+    // Invalidate map size to ensure full render
     setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
     setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 400);
     setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 900);
@@ -558,251 +419,6 @@ window.selectCityFromMap = function(cityId) {
   loadCityData(cityId);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
-
-// Interactive Charts (Chart.js)
-function initCharts() {
-  if (typeof Chart === 'undefined') {
-    console.warn("Chart.js not loaded yet.");
-    return;
-  }
-
-  // Set Chart.js global defaults for dark theme
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.06)';
-
-  // 1. Hourly Trend Chart
-  const hourlyCtx = document.getElementById("hourlyTrendChart");
-  if (hourlyCtx) {
-    if (hourlyChartInstance) {
-      hourlyChartInstance.destroy();
-      hourlyChartInstance = null;
-    }
-
-    const { hours, initialData } = generateInitialHourlyData(338);
-
-    hourlyChartInstance = new Chart(hourlyCtx, {
-      type: "line",
-      data: {
-        labels: hours,
-        datasets: [{
-          label: "AQI (Hourly Diurnal)",
-          data: initialData,
-          borderColor: "#ef4444",
-          backgroundColor: "rgba(239, 68, 68, 0.12)",
-          fill: true,
-          tension: 0.35,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2.5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-        scales: {
-          x: {
-            ticks: { color: "#94a3b8", maxTicksLimit: 12 },
-            grid: { color: "rgba(255,255,255,0.05)" }
-          },
-          y: {
-            ticks: { color: "#94a3b8" },
-            grid: { color: "rgba(255,255,255,0.05)" },
-            beginAtZero: false
-          }
-        },
-        plugins: {
-          legend: { labels: { color: "#f8fafc" } },
-          tooltip: {
-            backgroundColor: "#0f172a",
-            titleColor: "#f8fafc",
-            borderColor: "rgba(255,255,255,0.1)",
-            borderWidth: 1
-          }
-        }
-      }
-    });
-  }
-
-  // 2. City Comparison Chart
-  const compCtx = document.getElementById("cityComparisonChart");
-  if (compCtx) {
-    if (compareChartInstance) {
-      compareChartInstance.destroy();
-      compareChartInstance = null;
-    }
-
-    const compareCities = ["Delhi NCR", "Mumbai", "Kolkata", "Bengaluru", "Chennai", "Lucknow", "Hyderabad", "Jaipur"];
-    const compareData = compareCities.map(name => {
-      const city = INDIAN_CITIES_DATA.find(c => c.name.includes(name) || name.includes(c.name));
-      return city ? calculateOverallAQI(city.pollutants).aqi : 120;
-    });
-
-    const bgColors = compareData.map(v => getAQICategory(v).color);
-
-    compareChartInstance = new Chart(compCtx, {
-      type: "bar",
-      data: {
-        labels: compareCities,
-        datasets: [{
-          label: "Current AQI",
-          data: compareData,
-          backgroundColor: bgColors,
-          borderRadius: 6,
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.2)"
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            ticks: { color: "#94a3b8" },
-            grid: { display: false }
-          },
-          y: {
-            ticks: { color: "#94a3b8" },
-            grid: { color: "rgba(255,255,255,0.05)" }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: "#0f172a",
-            titleColor: "#f8fafc",
-            callbacks: {
-              label: (context) => `AQI: ${context.parsed.y} (${getAQICategory(context.parsed.y).name})`
-            }
-          }
-        }
-      }
-    });
-  }
-
-  // 3. Seasonal Pattern Chart (Winter Spike in North vs Monsoon Washout)
-  const seasonCtx = document.getElementById("seasonalPatternChart");
-  if (seasonCtx) {
-    if (seasonalChartInstance) {
-      seasonalChartInstance.destroy();
-      seasonalChartInstance = null;
-    }
-
-    seasonalChartInstance = new Chart(seasonCtx, {
-      type: "line",
-      data: {
-        labels: ["Winter (Nov-Jan)", "Summer / Pre-Monsoon (Mar-May)", "Monsoon (Jun-Sep)", "Post-Monsoon (Oct)"],
-        datasets: [
-          {
-            label: "Delhi (North - Inversion & Stubble Spike)",
-            data: [365, 195, 82, 285],
-            borderColor: "#ef4444",
-            backgroundColor: "rgba(239, 68, 68, 0.1)",
-            tension: 0.3,
-            fill: true,
-            pointRadius: 4,
-            borderWidth: 2.5
-          },
-          {
-            label: "Mumbai (Coastal - Marine Dispersion)",
-            data: [175, 120, 48, 135],
-            borderColor: "#3b82f6",
-            backgroundColor: "transparent",
-            tension: 0.3,
-            pointRadius: 4,
-            borderWidth: 2.5
-          },
-          {
-            label: "Bengaluru (South - Plateau Climate)",
-            data: [82, 70, 38, 62],
-            borderColor: "#10b981",
-            backgroundColor: "transparent",
-            tension: 0.3,
-            pointRadius: 4,
-            borderWidth: 2.5
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            ticks: { color: "#94a3b8" },
-            grid: { color: "rgba(255,255,255,0.05)" }
-          },
-          y: {
-            ticks: { color: "#94a3b8" },
-            grid: { color: "rgba(255,255,255,0.05)" }
-          }
-        },
-        plugins: {
-          legend: { labels: { color: "#f8fafc" } },
-          tooltip: {
-            backgroundColor: "#0f172a",
-            titleColor: "#f8fafc"
-          }
-        }
-      }
-    });
-  }
-}
-
-// Helper to generate hours labels & initial data
-function generateInitialHourlyData(baseAqi) {
-  const hours = [];
-  const initialData = [];
-  const now = new Date();
-
-  for (let i = 24; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 3600 * 1000);
-    hours.push(d.toLocaleTimeString("en-IN", { hour: "numeric", hour12: true }));
-
-    const hr = d.getHours();
-    let factor = 1.0;
-    if (hr >= 7 && hr <= 10) factor = 1.18;      // Morning rush
-    else if (hr >= 12 && hr <= 16) factor = 0.80; // Solar dispersion
-    else if (hr >= 18 && hr <= 22) factor = 1.25; // Evening peak
-    else factor = 1.05;                          // Night inversion
-
-    const val = Math.max(25, Math.round(baseAqi * factor + Math.sin(i) * 5));
-    initialData.push(val);
-  }
-
-  return { hours, initialData };
-}
-
-// Update hourly trend chart dynamically when city changes
-function updateHourlyChart(baseAqi, cityName, backendHourlyData) {
-  const cityLabel = document.getElementById("trendCityLabel");
-  if (cityLabel && cityName) {
-    cityLabel.textContent = cityName;
-  }
-
-  if (!hourlyChartInstance) {
-    initCharts();
-  }
-
-  if (!hourlyChartInstance) return;
-
-  const aqiCategory = getAQICategory(baseAqi);
-
-  if (backendHourlyData && Array.isArray(backendHourlyData) && backendHourlyData.length > 0) {
-    hourlyChartInstance.data.labels = backendHourlyData.map(t => t.time);
-    hourlyChartInstance.data.datasets[0].data = backendHourlyData.map(t => t.aqi);
-  } else {
-    const { hours, initialData } = generateInitialHourlyData(baseAqi);
-    hourlyChartInstance.data.labels = hours;
-    hourlyChartInstance.data.datasets[0].data = initialData;
-  }
-
-  hourlyChartInstance.data.datasets[0].borderColor = aqiCategory.color;
-  hourlyChartInstance.data.datasets[0].backgroundColor = aqiCategory.color.replace(')', ', 0.12)').replace('rgb', 'rgba');
-  hourlyChartInstance.update();
-}
 
 // AQI Calculator Controls (Connects to Backend POST /api/calculate with Client Fallback)
 function initCalculatorControls() {
