@@ -717,3 +717,46 @@ footer {
     margin-top: 18px;
   }
 }
+
+/* Hero Mascot Boy Styles */
+.hero-mascot-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px;
+  animation: floatMascot 4s ease-in-out infinite alternate;
+}
+
+@keyframes floatMascot {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-4px); }
+}
+
+.mascot-boy-img {
+  height: 140px;
+  max-width: 95px;
+  object-fit: contain;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.16));
+  border-radius: 8px;
+}
+
+.mascot-boy-img:hover {
+  transform: translateY(-6px) scale(1.06);
+}
+
+.mascot-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+}
+
+/* Google Maps Iframe Container */
+.google-map-frame {
+  width: 100%;
+  height: 480px;
+  border: none;
+  border-radius: 18px;
+}

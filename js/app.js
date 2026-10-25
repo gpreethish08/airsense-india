@@ -118,6 +118,7 @@ const INDIAN_CITIES_LIST = [
 ];
 
 // App State
+// App State
 let currentCityId = "delhi";
 let currentYear = 2026;
 let currentStandard = "us";
@@ -133,7 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initApiKeys();
   initEventListeners();
   initMaps();
-  loadCity(currentCityId);
+  renderAllStatesChips();
+  window.loadCity(currentCityId);
 });
 
 // Setup Stored API Keys
@@ -141,26 +143,36 @@ function initApiKeys() {
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
   const mapKey = localStorage.getItem("airsense_map_key") || "demo";
+  const googleKey = localStorage.getItem("airsense_google_maps_key") || "";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
   
   const elIqair = document.getElementById("inputIqairKey");
   const elOw = document.getElementById("inputOpenweatherKey");
   const elMap = document.getElementById("inputMapKey");
+  const elGoogle = document.getElementById("inputGoogleMapsKey");
   const elSwitch = document.getElementById("toggleAqiTileOverlay");
 
   if (elIqair) elIqair.value = iqairKey;
   if (elOw) elOw.value = owKey;
   if (elMap) elMap.value = mapKey;
+  if (elGoogle) elGoogle.value = googleKey;
   if (elSwitch) elSwitch.checked = overlayEnabled;
 }
 
 // Event Listeners
 function initEventListeners() {
-  // City Selectors
+  // City Selectors (Navbar & Hero)
   const navCity = document.getElementById("navCitySelector");
   if (navCity) {
     navCity.addEventListener("change", (e) => {
-      loadCity(e.target.value);
+      window.loadCity(e.target.value);
+    });
+  }
+
+  const heroCity = document.getElementById("heroStateSelector");
+  if (heroCity) {
+    heroCity.addEventListener("change", (e) => {
+      window.loadCity(e.target.value);
     });
   }
 
@@ -192,153 +204,84 @@ function initEventListeners() {
   }
 }
 
-// Dynamic Mascot SVG based on AQI values requested by user:
-// 1) AQI 1 to 50: DOES NOT wear mask, smiling face, fresh air
-// 2) AQI 50 to 100: COVERS nose and mouth with hand / cloth handkerchief
-// 3) AQI > 100: WEARS protective face mask with straps
-function getMascotSvg(aqi) {
+// Dynamic Mascot Image & Badge (1-50 no mask, 50-100 covers mouth/nose, >100 wears mask)
+function updateMascot(aqi) {
+  const container = document.getElementById("heroMascotContainer");
+  const imgEl = document.getElementById("mascotBoyImg");
+  const badgeEl = document.getElementById("mascotBoyBadge");
+
+  let imgSrc = "images/boy_masked.png";
+  let badgeHtml = '<i class="fa-solid fa-head-side-mask me-1"></i> AQI > 100: Face Mask Mandatory!';
+  let badgeClass = "badge bg-danger text-white rounded-pill px-3 py-1 small fw-bold mt-2 mascot-badge";
+
   if (aqi <= 50) {
-    // STATE 1: AQI 1 - 50 -> Does NOT wear mask! Smiling face, fresh air
-    return `
-      <div class="mascot-wrapper d-flex flex-column align-items-center">
-        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Head -->
-          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
-          <!-- Stylish Hair -->
-          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
-          <!-- Cheerful Happy Eyes (^_^) -->
-          <path d="M43 47C45 42 52 42 54 47" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
-          <path d="M66 47C68 42 75 42 77 47" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
-          <!-- Rosy cheeks -->
-          <circle cx="41" cy="55" r="4.5" fill="#F472B6" opacity="0.65"/>
-          <circle cx="79" cy="55" r="4.5" fill="#F472B6" opacity="0.65"/>
-          <!-- Cute Nose -->
-          <circle cx="60" cy="52" r="2" fill="#F59E0B"/>
-          <!-- Big Joyful Smile (NO MASK!) -->
-          <path d="M48 58C48 68 72 68 72 58" fill="#EF4444" stroke="#991B1B" stroke-width="2"/>
-          <path d="M53 62C56 60 64 60 67 62C66 66 54 66 53 62Z" fill="#FCA5A5"/>
-          <!-- Fresh air sparkle -->
-          <path d="M22 25L24 19L26 25L32 27L26 29L24 35L22 29L16 27L22 25Z" fill="#10B981"/>
-          <!-- Body in Clean Emerald Green Shirt -->
-          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#10B981"/>
-          <!-- Right arm waving cheerfully -->
-          <path d="M82 82L96 68" stroke="#10B981" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="98" cy="66" r="5" fill="#FCD34D"/>
-          <!-- Left arm relaxed -->
-          <path d="M38 82L28 105" stroke="#10B981" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
-          <!-- Legs & Shoes -->
-          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-        </svg>
-        <span class="badge bg-success text-white rounded-pill px-3 py-1 small fw-bold mt-1">
-          <i class="fa-solid fa-face-smile me-1"></i> AQI 1-50: Fresh Air (No Mask)
-        </span>
-      </div>
-    `;
+    // 1 to 50: No mask, cheerful smiling face, fresh air
+    imgSrc = "images/boy_no_mask.png";
+    badgeHtml = '<i class="fa-solid fa-face-smile me-1"></i> AQI 1-50: Fresh Air (No Mask)';
+    badgeClass = "badge bg-success text-white rounded-pill px-3 py-1 small fw-bold mt-2 mascot-badge";
   } else if (aqi <= 100) {
-    // STATE 2: AQI 50 - 100 -> Covers nose and mouth with hand / cloth!
-    return `
-      <div class="mascot-wrapper d-flex flex-column align-items-center">
-        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Head -->
-          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
-          <!-- Hair -->
-          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
-          <!-- Cautious watchful eyes -->
-          <circle cx="48" cy="46" r="3.5" fill="#1E293B"/>
-          <circle cx="72" cy="46" r="3.5" fill="#1E293B"/>
-          <circle cx="50" cy="45" r="1.2" fill="#FFFFFF"/>
-          <circle cx="74" cy="45" r="1.2" fill="#FFFFFF"/>
-          <path d="M44 42L52 44" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
-          <path d="M76 42L68 44" stroke="#1E293B" stroke-width="2" stroke-linecap="round"/>
-          <!-- Blushing -->
-          <circle cx="42" cy="55" r="4" fill="#FBBF24" opacity="0.6"/>
-          <circle cx="78" cy="55" r="4" fill="#FBBF24" opacity="0.6"/>
-          <!-- Handkerchief / Hand covering nose & mouth -->
-          <path d="M44 54C44 50 76 50 76 54L72 70C72 72 48 72 48 70Z" fill="#E0F2FE" stroke="#0284C7" stroke-width="1.5"/>
-          <path d="M48 58L72 58" stroke="#BAE6FD" stroke-width="1.5"/>
-          <!-- Hand holding cloth over nose & mouth -->
-          <circle cx="66" cy="62" r="5" fill="#FCD34D" stroke="#D97706" stroke-width="1"/>
-          <!-- Amber Kurta -->
-          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#F59E0B"/>
-          <!-- Right arm raised covering nose and mouth -->
-          <path d="M82 82L68 64" stroke="#F59E0B" stroke-width="7" stroke-linecap="round"/>
-          <!-- Left arm down -->
-          <path d="M38 82L28 105" stroke="#F59E0B" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
-          <!-- Legs & Shoes -->
-          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-        </svg>
-        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 small fw-bold mt-1">
-          <i class="fa-solid fa-hand me-1"></i> AQI 50-100: Covering Nose &amp; Mouth
-        </span>
-      </div>
+    // 50 to 100: Covers nose and mouth with hand & cloth
+    imgSrc = "images/boy_cover_mouth.png";
+    badgeHtml = '<i class="fa-solid fa-hand me-1"></i> AQI 50-100: Covering Nose &amp; Mouth';
+    badgeClass = "badge bg-warning text-dark rounded-pill px-3 py-1 small fw-bold mt-2 mascot-badge";
+  }
+
+  if (imgEl && badgeEl) {
+    imgEl.src = imgSrc;
+    badgeEl.className = badgeClass;
+    badgeEl.innerHTML = badgeHtml;
+  } else if (container) {
+    container.innerHTML = `
+      <img id="mascotBoyImg" src="${imgSrc}" alt="AirSense Boy Mascot" class="mascot-boy-img" onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='./images/boy_masked.png';}">
+      <div id="mascotBoyBadge" class="${badgeClass}">${badgeHtml}</div>
     `;
-  } else {
-    // STATE 3: AQI > 100 -> Wears protective face mask (Photo 3 exact match)
-    return `
-      <div class="mascot-wrapper d-flex flex-column align-items-center">
-        <svg width="120" height="130" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Head -->
-          <circle cx="60" cy="50" r="32" fill="#FCD34D"/>
-          <!-- Hair -->
-          <path d="M32 45C32 25 45 15 60 15C75 15 88 25 88 45C88 35 75 25 60 25C45 25 32 35 32 45Z" fill="#1E293B"/>
-          <path d="M30 40C30 30 40 20 60 20C80 20 90 30 90 40C85 30 75 24 60 24C45 24 35 30 30 40Z" fill="#0F172A"/>
-          <!-- Concerned downward eyes -->
-          <path d="M46 45L54 48" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M74 45L66 48" stroke="#1E293B" stroke-width="2.5" stroke-linecap="round"/>
-          <!-- Rosy cheeks -->
-          <circle cx="43" cy="54" r="4" fill="#F87171" opacity="0.6"/>
-          <circle cx="77" cy="54" r="4" fill="#F87171" opacity="0.6"/>
-          <!-- Protective Face Mask -->
-          <rect x="42" y="52" width="36" height="22" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
-          <line x1="42" y1="58" x2="78" y2="58" stroke="#E2E8F0" stroke-width="1.5"/>
-          <line x1="42" y1="65" x2="78" y2="65" stroke="#E2E8F0" stroke-width="1.5"/>
-          <!-- Mask Ear Straps -->
-          <path d="M42 56L34 52" stroke="#CBD5E1" stroke-width="1.5"/>
-          <path d="M42 68L34 62" stroke="#CBD5E1" stroke-width="1.5"/>
-          <path d="M78 56L86 52" stroke="#CBD5E1" stroke-width="1.5"/>
-          <path d="M78 68L86 62" stroke="#CBD5E1" stroke-width="1.5"/>
-          <!-- Body & Kurta (Pink Kurta from Photo 3) -->
-          <path d="M40 82C40 76 50 74 60 74C70 74 80 76 80 82L84 120H36L40 82Z" fill="#EC4899"/>
-          <rect x="58" y="74" width="4" height="26" fill="#F43F5E"/>
-          <!-- Arms -->
-          <path d="M38 82L28 105" stroke="#EC4899" stroke-width="7" stroke-linecap="round"/>
-          <path d="M82 82L92 105" stroke="#EC4899" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="28" cy="107" r="4" fill="#FCD34D"/>
-          <circle cx="92" cy="107" r="4" fill="#FCD34D"/>
-          <!-- Legs & Shoes -->
-          <rect x="48" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="64" y="120" width="8" height="18" fill="#FFFFFF"/>
-          <rect x="44" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-          <rect x="62" y="134" width="14" height="6" rx="3" fill="#1E293B"/>
-        </svg>
-        <span class="badge bg-danger text-white rounded-pill px-3 py-1 small fw-bold mt-1">
-          <i class="fa-solid fa-head-side-mask me-1"></i> AQI > 100: Face Mask Mandatory!
-        </span>
+  }
+
+  // Update Calculator Mascot if present
+  const calcContainer = document.getElementById("calcMascotContainer");
+  if (calcContainer) {
+    calcContainer.innerHTML = `
+      <div class="d-flex flex-column align-items-center">
+        <img src="${imgSrc}" alt="Mascot" style="height: 105px; object-fit: contain;">
+        <span class="${badgeClass} mt-1">${badgeHtml}</span>
       </div>
     `;
   }
 }
 
-// Load City Telemetry
-async function loadCity(cityId) {
+// Global Load City Telemetry (Works 100% on Static GitHub Pages & Localhost)
+window.loadCity = async function(cityId) {
+  if (!cityId) return;
   currentCityId = cityId;
 
-  // Sync nav selector
+  // Sync selectors
   const navCity = document.getElementById("navCitySelector");
   if (navCity && navCity.value !== cityId) navCity.value = cityId;
+  const heroCity = document.getElementById("heroStateSelector");
+  if (heroCity && heroCity.value !== cityId) heroCity.value = cityId;
 
+  // Update active state chip
+  document.querySelectorAll(".state-chip-btn").forEach(btn => {
+    if (btn.dataset.cityId === cityId) {
+      btn.classList.add("active", "border-primary", "shadow-sm");
+    } else {
+      btn.classList.remove("active", "border-primary", "shadow-sm");
+    }
+  });
+
+  // Find telemetry in 43-location CAAQMS dataset
+  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
+  const clientData = generateClientCityData(city);
+
+  // Immediate render (zero delay)
+  renderHero(clientData);
+  renderMajorPollutants(clientData);
+  renderCalendar(cityId, currentYear, calendarMonths);
+  updateMapFocus(city.lat, city.lon);
+
+  // If live backend exists, refresh asynchronously
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
-
-  // Try fetching from FastAPI backend
   try {
     const url = `/api/city/${cityId}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
     const res = await fetch(url);
@@ -348,22 +291,13 @@ async function loadCity(cityId) {
       renderMajorPollutants(data);
       renderCalendar(cityId, currentYear, calendarMonths);
       updateMapFocus(data.city_info.lat, data.city_info.lon);
-      return;
     }
   } catch (err) {
-    console.log("Backend offline, utilizing client CAAQMS dataset:", err);
+    // Client data is already rendered
   }
+};
 
-  // Fallback to local dataset (e.g. GitHub Pages static serving)
-  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
-  const mockDetails = generateClientCityData(city);
-  renderHero(mockDetails);
-  renderMajorPollutants(mockDetails);
-  renderCalendar(cityId, currentYear, calendarMonths);
-  updateMapFocus(city.lat, city.lon);
-}
-
-// Generate Mock City Data for static mode
+// Generate Local State Telemetry
 function generateClientCityData(city) {
   const isDelhi = city.id === "delhi";
   const aqiVal = isDelhi ? 166 : city.aqi;
@@ -410,14 +344,12 @@ function generateClientCityData(city) {
   };
 }
 
-// Render Hero Section (Photo 3) with Dynamic Mascot State
+// Render Hero Section with Mascot Boy
 function renderHero(data) {
   const info = data.city_info;
   const aqi = data.aqi_data.aqi;
   const cat = data.aqi_data.category;
-  const color = data.aqi_data.color;
 
-  // Meta row
   const title = document.getElementById("heroCityTitle");
   if (title) title.textContent = `${info.name} Air Quality Index (AQI) | Air Pollution`;
 
@@ -427,7 +359,6 @@ function renderHero(data) {
   const time = document.getElementById("lastUpdatedTime");
   if (time) time.textContent = info.timestamp;
 
-  // AQI Values
   const aqiNum = document.getElementById("heroAqiNumber");
   if (aqiNum) aqiNum.textContent = aqi;
 
@@ -438,13 +369,11 @@ function renderHero(data) {
     aqiCat.style.color = getCategoryTextColor(aqi);
   }
 
-  // Dynamic Pastel Banner Background
   const bannerBg = document.getElementById("heroBannerBg");
   if (bannerBg) {
     bannerBg.style.background = getCategoryGradient(aqi);
   }
 
-  // Pointer position on rainbow spectrum bar (0 to 500)
   const pointer = document.getElementById("heroSpectrumPointer");
   if (pointer) {
     let pct = (aqi / 350) * 100;
@@ -452,7 +381,6 @@ function renderHero(data) {
     pointer.style.left = `${pct}%`;
   }
 
-  // Sub pollutants in hero
   const pm25El = document.getElementById("heroPm25");
   const pm10El = document.getElementById("heroPm10");
   if (pm25El) {
@@ -464,13 +392,9 @@ function renderHero(data) {
     pm10El.textContent = p10 ? p10.value : (data.raw_pollutants ? Math.round(data.raw_pollutants.pm10) : 159);
   }
 
-  // Dynamic Mascot Rendering (1-50 no mask, 50-100 covers nose & mouth, >100 wears mask)
-  const mascotBox = document.getElementById("heroMascotContainer");
-  if (mascotBox) {
-    mascotBox.innerHTML = getMascotSvg(aqi);
-  }
+  // Update Dynamic Mascot
+  updateMascot(aqi);
 
-  // Weather Card in Hero
   const wTemp = document.getElementById("heroWeatherTemp");
   if (wTemp) wTemp.textContent = `${info.temp} °C`;
 
@@ -486,14 +410,12 @@ function renderHero(data) {
   const wUv = document.getElementById("heroWeatherUv");
   if (wUv) wUv.textContent = `${info.uv_index || 1.5}`;
 
-  // Rank Bar
   const rankNum = document.getElementById("heroCityRank");
   if (rankNum) rankNum.textContent = `${info.rank}th`;
 
   const rankText = document.getElementById("heroRankText");
   if (rankText) rankText.textContent = info.rank_text || `Currently, ${info.name} ranks ${info.rank}th among the most polluted cities globally.`;
 
-  // Links in section headers
   const link1 = document.getElementById("pollutantsCityLink");
   if (link1) link1.textContent = info.name;
 
@@ -565,10 +487,9 @@ async function renderCalendar(cityId, year, months) {
       return;
     }
   } catch (e) {
-    console.log("Calendar fetch fallback to client generator:", e);
+    // Client-side fallback calendar
   }
 
-  // Client-side fallback calendar generator
   const clientMonths = generateClientCalendar(cityId, year, months);
   buildCalendarHtml(clientMonths);
 }
@@ -614,21 +535,15 @@ function buildCalendarHtml(monthsData) {
   container.innerHTML = html;
 }
 
-// Client Calendar Generator matching Photo 2 values for Delhi
+// Client Calendar Generator scaled to state base AQI
 function generateClientCalendar(cityId, year, months) {
-  const monthNames = {
-    1: "January", 2: "February", 3: "March", 4: "April",
-    5: "May", 6: "June", 7: "July", 8: "August",
-    9: "September", 10: "October", 11: "November", 12: "December"
-  };
-  const shortNames = {
-    1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.",
-    5: "May.", 6: "Jun.", 7: "Jul.", 8: "Aug.",
-    9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec."
-  };
+  const city = INDIAN_CITIES_LIST.find(c => c.id === cityId) || INDIAN_CITIES_LIST[0];
+  const isDelhi = city.id === "delhi";
+  const baseAqi = isDelhi ? 166 : city.aqi;
 
-  const isDelhi = cityId.toLowerCase().includes("delhi");
-  
+  const monthNames = { 1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December" };
+  const shortNames = { 1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.", 5: "May.", 6: "Jun.", 7: "Jul.", 8: "Aug.", 9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec." };
+
   const photoValues = {
     8: { 1: 127, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95 },
     9: { 1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108, 9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145, 16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164, 23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144 },
@@ -636,23 +551,20 @@ function generateClientCalendar(cityId, year, months) {
   };
 
   const results = [];
-
   months.forEach(m => {
     const daysInMonth = new Date(year, m, 0).getDate();
     const firstDayIndex = new Date(year, m - 1, 1).getDay();
     const daysData = [];
 
-    for (let i = 0; i < firstDayIndex; i++) {
-      daysData.push(null);
-    }
+    for (let i = 0; i < firstDayIndex; i++) daysData.push(null);
 
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
       let aqiVal;
       if (isDelhi && photoValues[m] && photoValues[m][dayNum]) {
         aqiVal = photoValues[m][dayNum];
       } else {
-        const seed = (year * 100 + m * 31 + dayNum) % 100;
-        aqiVal = m === 8 ? (85 + seed % 45) : (m === 9 ? (100 + seed % 65) : (140 + seed % 85));
+        const variance = Math.sin(dayNum * 1.5 + m) * (baseAqi * 0.22);
+        aqiVal = Math.max(12, Math.round(baseAqi + variance));
       }
 
       daysData.push({
@@ -674,7 +586,7 @@ function generateClientCalendar(cityId, year, months) {
   return results;
 }
 
-// Calendar Month Shift Controls
+// Calendar Month Controls
 window.prevCalendarMonths = function() {
   calendarMonths = calendarMonths.map(m => m <= 1 ? 12 : m - 1);
   renderCalendar(currentCityId, currentYear, calendarMonths);
@@ -685,7 +597,68 @@ window.nextCalendarMonths = function() {
   renderCalendar(currentCityId, currentYear, calendarMonths);
 };
 
-// Initialize Leaflet Maps with Map API Key & Heat Tile Overlay Layer
+// Render Clickable Chips for ALL 28 States & 8 UTs
+function renderAllStatesChips() {
+  const container = document.getElementById("allStatesChipsGrid");
+  if (!container) return;
+
+  container.innerHTML = INDIAN_CITIES_LIST.map(c => {
+    const color = getAqiColor(c.aqi);
+    const textColor = color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
+    return `
+      <button type="button" class="btn btn-sm btn-light border rounded-pill px-2 py-1 small state-chip-btn ${c.id === currentCityId ? 'active border-primary shadow-sm' : ''}" 
+              data-city-id="${c.id}" 
+              onclick="window.loadCity('${c.id}')"
+              style="font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+        <span style="display:inline-block; width: 9px; height: 9px; border-radius: 50%; background-color: ${color};"></span>
+        <span class="fw-semibold">${c.name}</span>
+        <span class="badge" style="background-color: ${color}; color: ${textColor}; font-size: 0.68rem; padding: 2px 5px;">${c.aqi}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+// Switch between Leaflet & Google Maps (Maps Demo Key)
+window.switchMapView = function(mode) {
+  const leafletEl = document.getElementById("indiaMap");
+  const googleEl = document.getElementById("googleMap");
+  const btnLeaflet = document.getElementById("btnViewLeaflet");
+  const btnGoogle = document.getElementById("btnViewGoogle");
+
+  if (mode === "google") {
+    if (leafletEl) leafletEl.classList.add("d-none");
+    if (googleEl) googleEl.classList.remove("d-none");
+    if (btnLeaflet) {
+      btnLeaflet.classList.remove("btn-primary", "active");
+      btnLeaflet.classList.add("btn-outline-primary");
+    }
+    if (btnGoogle) {
+      btnGoogle.classList.add("btn-primary", "active");
+      btnGoogle.classList.remove("btn-outline-secondary");
+    }
+    const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+    const iframe = document.getElementById("googleMapIframe");
+    if (iframe) {
+      iframe.src = `https://maps.google.com/maps?q=${city.lat},${city.lon}&hl=en&z=9&output=embed`;
+    }
+  } else {
+    if (googleEl) googleEl.classList.add("d-none");
+    if (leafletEl) leafletEl.classList.remove("d-none");
+    if (btnGoogle) {
+      btnGoogle.classList.remove("btn-primary", "active");
+      btnGoogle.classList.add("btn-outline-secondary");
+    }
+    if (btnLeaflet) {
+      btnLeaflet.classList.add("btn-primary", "active");
+      btnLeaflet.classList.remove("btn-outline-primary");
+    }
+    if (mainLeafletMap) {
+      setTimeout(() => { mainLeafletMap.invalidateSize(); }, 150);
+    }
+  }
+};
+
+// Initialize Leaflet Maps with Map API Token & Tile Overlays
 function initMaps() {
   const mapKey = localStorage.getItem("airsense_map_key") || "demo";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
@@ -713,7 +686,7 @@ function initMaps() {
       attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mainLeafletMap);
 
-    // Live Air Quality Tile Overlay Layer using Map API Token
+    // Live AQI Tile Overlay Layer
     aqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {
       maxZoom: 18,
       opacity: 0.65,
@@ -724,14 +697,14 @@ function initMaps() {
       aqiTileOverlayLayer.addTo(mainLeafletMap);
     }
 
-    // Add Layer Control so user can toggle AQI Heatmap Layer easily
+    // Layer Switcher
     L.control.layers(
       { "Carto Light Map": baseTile },
       { "Live Air Quality Heatmap Layer": aqiTileOverlayLayer },
       { position: "topright" }
     ).addTo(mainLeafletMap);
 
-    // Plot all 28 Indian States & 8 Union Territories
+    // Add all 43 State & UT pins with click-to-load
     INDIAN_CITIES_LIST.forEach(city => {
       const color = getAqiColor(city.aqi);
       const icon = L.divIcon({
@@ -751,7 +724,7 @@ function initMaps() {
             <span style="background: ${color}; color: ${color === '#FFFF00' ? '#7A6800' : '#FFFFFF'}; padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem;">AQI ${city.aqi}</span>
             <span style="font-size: 0.8rem; font-weight: 600; color: #0F172A;">${city.cat}</span>
           </div>
-          <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View State/City Telemetry</button>
+          <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View State Telemetry</button>
         </div>
       `);
 
@@ -760,7 +733,6 @@ function initMaps() {
   }
 }
 
-// Update Map Focus when city changes
 function updateMapFocus(lat, lon) {
   if (miniLeafletMap) {
     miniLeafletMap.setView([lat, lon], 11);
@@ -769,7 +741,6 @@ function updateMapFocus(lat, lon) {
         miniLeafletMap.removeLayer(layer);
       }
     });
-    // Add pulsing circle marker for active city in mini map
     L.circleMarker([lat, lon], {
       radius: 14,
       fillColor: "#EF4444",
@@ -782,6 +753,15 @@ function updateMapFocus(lat, lon) {
 
   if (mainLeafletMap) {
     mainLeafletMap.panTo([lat, lon]);
+    const markerObj = mapMarkers.find(m => m.id === currentCityId);
+    if (markerObj) {
+      markerObj.marker.openPopup();
+    }
+  }
+
+  const googleIframe = document.getElementById("googleMapIframe");
+  if (googleIframe) {
+    googleIframe.src = `https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=9&output=embed`;
   }
 }
 
@@ -810,44 +790,51 @@ window.computeAqi = function() {
     const ranges = CPCB_BREAKPOINTS[p];
     if (!ranges) continue;
 
-    let matched = null;
+    let sub = null;
+    let matchedRange = null;
+
     for (const [b_lo, b_hi, i_lo, i_hi] of ranges) {
       if (conc >= b_lo && conc <= b_hi) {
-        matched = [b_lo, b_hi, i_lo, i_hi];
+        sub = Math.round(((i_hi - i_lo) / (b_hi - b_lo)) * (conc - b_lo) + i_lo);
+        matchedRange = { b_lo, b_hi, i_lo, i_hi };
         break;
       }
     }
-    if (!matched && conc > ranges[ranges.length - 1][1]) {
-      const last = ranges[ranges.length - 1];
-      matched = [last[0], last[1], last[2], last[3]];
-    }
 
-    if (matched) {
-      const [b_lo, b_hi, i_lo, i_hi] = matched;
-      const sub = Math.round(i_lo + ((i_hi - i_lo) / (b_hi - b_lo)) * (conc - b_lo));
+    if (sub !== null && matchedRange) {
       subIndices[p] = sub;
+      const unit = p === "co" ? "mg/m³" : "µg/m³";
       steps.push({
         pollutant: p.toUpperCase(),
-        conc: conc,
-        b_range: `[${b_lo} - ${b_hi}]`,
-        i_range: `[${i_lo} - ${i_hi}]`,
-        formula: `${i_lo} + [(${i_hi} - ${i_lo})/(${b_hi} - ${b_lo})] × (${conc} - ${b_lo})`,
+        conc: `${conc} ${unit}`,
+        b_range: `${matchedRange.b_lo} - ${matchedRange.b_hi}`,
+        i_range: `${matchedRange.i_lo} - ${matchedRange.i_hi}`,
+        formula: `[(${matchedRange.i_hi} - ${matchedRange.i_lo}) / (${matchedRange.b_hi} - ${matchedRange.b_lo})] × (${conc} - ${matchedRange.b_lo}) + ${matchedRange.i_lo}`,
         sub_index: sub
       });
     }
   }
 
-  if (steps.length === 0) {
-    alert("Please provide at least one valid pollutant concentration value.");
+  // CPCB Standard requires at least 3 pollutants with at least one PM (PM2.5 or PM10)
+  const count = Object.keys(subIndices).length;
+  const hasPm = subIndices.pm25 !== undefined || subIndices.pm10 !== undefined;
+
+  if (count === 0) {
+    alert("Please enter at least one valid pollutant concentration value.");
     return;
   }
 
-  // Find max sub-index as overall AQI
+  if (count < 3 || !hasPm) {
+    // Soft advisory
+    console.warn("CPCB guidelines recommend at least 3 pollutants with at least one PM. Proceeding with available inputs.");
+  }
+
+  // Overall AQI = max of sub-indices
   let maxSub = 0;
-  let dominant = "";
-  for (const [p, sub] of Object.entries(subIndices)) {
-    if (sub > maxSub) {
-      maxSub = sub;
+  let dominant = "None";
+  for (const [p, val] of Object.entries(subIndices)) {
+    if (val > maxSub) {
+      maxSub = val;
       dominant = p.toUpperCase();
     }
   }
@@ -873,10 +860,7 @@ window.computeAqi = function() {
   if (domEl) domEl.textContent = dominant;
 
   // Render Mascot in Calculator result matching the computed AQI
-  const calcMascot = document.getElementById("calcMascotContainer");
-  if (calcMascot) {
-    calcMascot.innerHTML = getMascotSvg(maxSub);
-  }
+  updateMascot(maxSub);
 
   // Render Breakdown Table
   const tableBody = document.getElementById("calcStepsTableBody");
@@ -916,91 +900,80 @@ window.fetchLiveForCalculator = async function() {
       return;
     }
   } catch (err) {
-    console.log("Direct backend live fetch error, using city baseline:", err);
+    // Fallback to client city data
   }
 
-  // Fallback to active city telemetry
   const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
   document.getElementById("calc_pm25").value = city.pm25;
   document.getElementById("calc_pm10").value = city.pm10;
-  document.getElementById("calc_no2").value = city.no2;
-  document.getElementById("calc_so2").value = city.so2;
   document.getElementById("calc_co").value = (city.co / 1000).toFixed(1);
-  document.getElementById("calc_o3").value = city.o3;
-  document.getElementById("calc_nh3").value = 22;
+  document.getElementById("calc_so2").value = (city.so2 * 2.62).toFixed(1);
+  document.getElementById("calc_no2").value = (city.no2 * 1.88).toFixed(1);
+  document.getElementById("calc_o3").value = (city.o3 * 1.96).toFixed(1);
+  document.getElementById("calc_nh3").value = "25.0";
+
   computeAqi();
+  alert(`Loaded baseline CAAQMS telemetry for ${city.name} into calculator.`);
 };
 
-// Preset Scenarios
-window.loadCalcPreset = function(type) {
-  if (type === "clean") {
-    document.getElementById("calc_pm25").value = 18;
-    document.getElementById("calc_pm10").value = 32;
-    document.getElementById("calc_no2").value = 14;
-    document.getElementById("calc_so2").value = 6;
-    document.getElementById("calc_co").value = 0.5;
-    document.getElementById("calc_o3").value = 16;
-    document.getElementById("calc_nh3").value = 10;
-  } else if (type === "moderate") {
-    document.getElementById("calc_pm25").value = 52;
-    document.getElementById("calc_pm10").value = 88;
-    document.getElementById("calc_no2").value = 34;
-    document.getElementById("calc_so2").value = 14;
-    document.getElementById("calc_co").value = 1.2;
-    document.getElementById("calc_o3").value = 28;
-    document.getElementById("calc_nh3").value = 18;
-  } else if (type === "delhi_severe") {
-    document.getElementById("calc_pm25").value = 240;
-    document.getElementById("calc_pm10").value = 380;
-    document.getElementById("calc_no2").value = 92;
-    document.getElementById("calc_so2").value = 32;
-    document.getElementById("calc_co").value = 3.8;
-    document.getElementById("calc_o3").value = 54;
-    document.getElementById("calc_nh3").value = 64;
-  } else if (type === "industrial_so2") {
-    document.getElementById("calc_pm25").value = 65;
-    document.getElementById("calc_pm10").value = 110;
-    document.getElementById("calc_no2").value = 45;
-    document.getElementById("calc_so2").value = 420;
-    document.getElementById("calc_co").value = 1.6;
-    document.getElementById("calc_o3").value = 32;
-    document.getElementById("calc_nh3").value = 26;
-  }
-  computeAqi();
-};
-
-// Helper: Populate Calculator when user clicks a Major Pollutant card
+// Populate calculator input when clicking on pollutant card
 window.populateCalculatorPollutant = function(pollutantId, val) {
-  const target = document.getElementById(`calc_${pollutantId}`);
-  if (target) {
-    if (pollutantId === "co" && val > 100) {
-      target.value = (val / 1000).toFixed(1);
+  const el = document.getElementById(`calc_${pollutantId}`);
+  if (el) {
+    if (pollutantId === "co") {
+      el.value = (val / 1000).toFixed(1); // convert ppb to mg/m³
+    } else if (["so2", "no2", "o3"].includes(pollutantId)) {
+      el.value = (val * 1.8).toFixed(1); // approximate ppb to µg/m³
     } else {
-      target.value = val;
+      el.value = val;
     }
-  }
-  const calcSec = document.getElementById("calculatorSection");
-  if (calcSec) {
-    calcSec.scrollIntoView({ behavior: "smooth" });
+    const calcSection = document.getElementById("calculatorSection");
+    if (calcSection) calcSection.scrollIntoView({ behavior: 'smooth' });
+    computeAqi();
   }
 };
 
-// Save API Keys from Modal
+// Calculator Presets
+window.loadCalcPreset = function(preset) {
+  const presets = {
+    clean: { pm25: 15, pm10: 25, no2: 12, so2: 6, co: 0.5, o3: 20, nh3: 40 },
+    moderate: { pm25: 45, pm10: 75, no2: 35, so2: 15, co: 1.2, o3: 55, nh3: 85 },
+    delhi_severe: { pm25: 220, pm10: 380, no2: 85, so2: 35, co: 4.5, o3: 95, nh3: 240 },
+    industrial_so2: { pm25: 65, pm10: 110, no2: 55, so2: 140, co: 2.1, o3: 40, nh3: 110 }
+  };
+
+  const p = presets[preset];
+  if (!p) return;
+
+  document.getElementById("calc_pm25").value = p.pm25;
+  document.getElementById("calc_pm10").value = p.pm10;
+  document.getElementById("calc_no2").value = p.no2;
+  document.getElementById("calc_so2").value = p.so2;
+  document.getElementById("calc_co").value = p.co;
+  document.getElementById("calc_o3").value = p.o3;
+  document.getElementById("calc_nh3").value = p.nh3;
+
+  computeAqi();
+};
+
+// Save API Keys & Map Settings
 window.saveApiKeys = function() {
   const iqairKey = document.getElementById("inputIqairKey").value.trim();
   const owKey = document.getElementById("inputOpenweatherKey").value.trim();
-  const mapKey = document.getElementById("inputMapKey").value.trim();
+  const mapKey = document.getElementById("inputMapKey").value.trim() || "demo";
+  const googleKey = (document.getElementById("inputGoogleMapsKey") ? document.getElementById("inputGoogleMapsKey").value.trim() : "");
   const overlayEnabled = document.getElementById("toggleAqiTileOverlay").checked;
 
   localStorage.setItem("airsense_iqair_key", iqairKey);
   localStorage.setItem("airsense_openweather_key", owKey);
   localStorage.setItem("airsense_map_key", mapKey);
+  localStorage.setItem("airsense_google_maps_key", googleKey);
   localStorage.setItem("airsense_aqi_overlay_enabled", overlayEnabled ? "true" : "false");
 
   // Update map layer if map exists
   if (mainLeafletMap && aqiTileOverlayLayer) {
     if (overlayEnabled) {
-      aqiTileOverlayLayer.setUrl("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + (mapKey || "demo"));
+      aqiTileOverlayLayer.setUrl("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey);
       if (!mainLeafletMap.hasLayer(aqiTileOverlayLayer)) {
         aqiTileOverlayLayer.addTo(mainLeafletMap);
       }
@@ -1014,7 +987,7 @@ window.saveApiKeys = function() {
   const alertBox = document.getElementById("apiKeyStatusAlert");
   const alertText = document.getElementById("apiKeyStatusText");
   if (alertBox && alertText) {
-    alertText.textContent = "API Keys & Map Settings saved successfully! Refreshing telemetry...";
+    alertText.textContent = "API Keys, Maps Demo Key & Tile Settings saved! Refreshing...";
     alertBox.classList.remove("d-none");
   }
 
@@ -1022,7 +995,7 @@ window.saveApiKeys = function() {
     const modalEl = document.getElementById("apiSettingsModal");
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
-    loadCity(currentCityId);
+    window.loadCity(currentCityId);
   }, 900);
 };
 
@@ -1046,7 +1019,7 @@ window.locateUser = function() {
           nearest = c;
         }
       });
-      loadCity(nearest.id);
+      window.loadCity(nearest.id);
     },
     () => {
       alert("Unable to retrieve your location. Showing Delhi NCR by default.");
@@ -1081,9 +1054,35 @@ window.toggleFavorite = function() {
   }
 };
 
-// Export CSV
+// Export CSV (Direct Client-Side Generation - 100% Works Everywhere)
 window.exportCityCSV = function() {
-  window.location.href = `/api/export/${currentCityId}`;
+  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const csvRows = [
+    ["AirSense India - Air Quality Telemetry Report"],
+    ["Generated", new Date().toISOString()],
+    ["City", city.name],
+    ["State", city.state],
+    ["Station", city.station],
+    ["Overall AQI", city.aqi],
+    ["Category", city.cat],
+    ["PM2.5 (ug/m3)", city.pm25],
+    ["PM10 (ug/m3)", city.pm10],
+    ["CO (ppb)", city.co],
+    ["SO2 (ppb)", city.so2],
+    ["NO2 (ppb)", city.no2],
+    ["O3 (ppb)", city.o3],
+    ["Temperature (C)", city.temp],
+    ["Humidity (%)", city.humidity],
+    ["Wind Speed (km/h)", city.wind]
+  ];
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.map(cell => `"${cell}"`).join(",")).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `AirSense_${city.id}_report.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
 
 // AQI Color Helpers
