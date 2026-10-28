@@ -334,9 +334,7 @@
           <h2 class="section-main-title">Major Air Pollutants</h2>
           <a href="#heroSection" id="pollutantsCityLink" class="section-city-link">Delhi</a>
         </div>
-        <button class="btn btn-outline-primary rounded-pill px-3 py-1 small fw-bold" data-bs-toggle="modal" data-bs-target="#apiSettingsModal">
-          <i class="fa-solid fa-satellite-dish me-1"></i> Live API Source
-        </button>
+
       </div>
 
       <!-- 6 Pollutant Cards Grid (3x2) -->
@@ -546,19 +544,10 @@
               <button class="btn btn-primary active rounded-start-pill px-3 fw-bold" id="btnLayerGoogleMap" onclick="window.setMapLayer('google_road')">
                 <i class="fa-solid fa-map me-1"></i> Google Maps (Demo Key)
               </button>
-              <button class="btn btn-outline-secondary px-3 fw-bold" id="btnLayerSatellite" onclick="window.setMapLayer('google_sat')">
+              <button class="btn btn-outline-secondary rounded-end-pill px-3 fw-bold" id="btnLayerSatellite" onclick="window.setMapLayer('google_sat')">
                 <i class="fa-solid fa-earth-americas me-1"></i> Google Satellite
               </button>
-              <button class="btn btn-outline-secondary rounded-end-pill px-3 fw-bold" id="btnLayerCarto" onclick="window.setMapLayer('carto')">
-                <i class="fa-solid fa-layer-group me-1"></i> Clean Light
-              </button>
             </div>
-            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" id="btnToggleHeatmap" onclick="window.toggleAqiHeatmap()">
-              <i class="fa-solid fa-fire me-1"></i> Toggle AQI Heatmap
-            </button>
-            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold">
-              <i class="fa-solid fa-location-dot text-danger me-1"></i> 43 Stations Active
-            </span>
             <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.resetMapView()">
               <i class="fa-solid fa-compress me-1 text-primary"></i> Reset
             </button>
