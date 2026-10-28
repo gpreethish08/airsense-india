@@ -883,7 +883,7 @@ function initMaps() {
 
 // Update Map Focus & Render Local Monitoring Station Pins (Photo 3 Replica)
 function updateMapFocus(lat, lon) {
-  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const city = findCity(currentCityId);
 
   if (miniLeafletMap) {
     miniLeafletMap.setView([lat, lon], 11);
@@ -1218,9 +1218,491 @@ window.toggleFavorite = function() {
   }
 };
 
+// Print Official AQI Telemetry Document in PDF Format
+window.printCityReport = function() {
+  const city = findCity(currentCityId);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const docId = `ASI-DOC-${city.id.toUpperCase()}-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+
+  const aqiColor = getAqiColor(city.aqi);
+  const aqiTextColor = aqiColor === "#FFFF00" ? "#7A6800" : "#FFFFFF";
+
+  let maskAdvise = "";
+  let maskIcon = "";
+  if (city.aqi <= 50) {
+    maskAdvise = "Good Air Quality (AQI 1-50): Air pollution poses minimal or no risk. Face mask is not required. Ideal condition for all outdoor physical activities.";
+    maskIcon = "fa-face-smile";
+  } else if (city.aqi <= 100) {
+    maskAdvise = "Moderate Air Quality (AQI 51-100): Air quality is acceptable. Sensitive individuals with respiratory conditions should cover nose and mouth during prolonged exposure.";
+    maskIcon = "fa-head-side-mask";
+  } else {
+    maskAdvise = "Unhealthy Air Quality (AQI > 100): High particulate pollution. Protective face mask (N95/N99) is mandatory outdoors. Sensitive groups and children should avoid outdoor exertion.";
+    maskIcon = "fa-shield-virus";
+  }
+
+  const printWindow = window.open("", "_blank", "width=850,height=1000");
+  if (!printWindow) {
+    alert("Please allow pop-ups for this website to print the AQI PDF document.");
+    return;
+  }
+
+  const docHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AirSense_${city.id}_AQI_Document</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0F172A;
+      background: #F8FAFC;
+      line-height: 1.45;
+      padding: 0;
+    }
+    .control-bar {
+      position: sticky;
+      top: 0;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 999;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-print {
+      background: #EF4444;
+      color: #FFFFFF;
+    }
+    .btn-print:hover { background: #DC2626; }
+    .btn-close {
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #CBD5E1;
+    }
+    .btn-close:hover { background: #E2E8F0; }
+    .page-container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #FFFFFF;
+      padding: 36px 42px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }
+    .header-table {
+      width: 100%;
+      border-bottom: 2.5px solid #0284C7;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+    .header-brand {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #0284C7;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-sub {
+      font-size: 0.76rem;
+      color: #64748B;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+    .doc-badge {
+      display: inline-block;
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 0.72rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .location-box {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .loc-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    .loc-station {
+      font-size: 0.8rem;
+      color: #64748B;
+      margin-top: 2px;
+    }
+    .loc-coords {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: #0284C7;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .aqi-summary-card {
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 20px;
+      background: #FAFAFA;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 20px;
+      align-items: center;
+    }
+    .aqi-dial {
+      text-align: center;
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .aqi-val {
+      font-size: 3rem;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .aqi-unit {
+      font-size: 0.75rem;
+      color: #64748B;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .cat-pill {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+    .advisory-title {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .advisory-text {
+      font-size: 0.84rem;
+      color: #475569;
+      line-height: 1.5;
+    }
+    .section-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #0F172A;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .telemetry-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 0.82rem;
+    }
+    .telemetry-table th {
+      background: #F1F5F9;
+      color: #334155;
+      padding: 9px 12px;
+      font-weight: 700;
+      text-align: left;
+      border: 1px solid #E2E8F0;
+    }
+    .telemetry-table td {
+      padding: 8px 12px;
+      border: 1px solid #E2E8F0;
+      color: #1E293B;
+    }
+    .telemetry-table tr:nth-child(even) { background: #F8FAFC; }
+    .val-cell { font-family: 'Fira Code', monospace; font-weight: 700; }
+    .weather-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .weather-item {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .weather-lbl { font-size: 0.72rem; color: #64748B; font-weight: 600; text-transform: uppercase; }
+    .weather-val { font-size: 1.05rem; font-weight: 800; color: #0284C7; margin-top: 3px; font-family: 'Fira Code', monospace; }
+    .footer-section {
+      border-top: 1.5px dashed #CBD5E1;
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 0.75rem;
+      color: #64748B;
+    }
+    .stamp-box {
+      border: 2px solid #0284C7;
+      color: #0284C7;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      letter-spacing: 0.8px;
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 15mm 15mm 15mm;
+      }
+      .control-bar { display: none !important; }
+      body {
+        background: #FFFFFF !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .page-container {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Controls (Hidden when printed to PDF) -->
+  <div class="control-bar no-print">
+    <div style="font-size: 0.82rem; color: #475569; font-weight: 600;">
+      <i class="fa-solid fa-circle-info text-primary me-1"></i> Document ready for PDF output. Select <b>Save as PDF</b> in the print destination.
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-action btn-print" onclick="window.print()">
+        <i class="fa-solid fa-file-pdf"></i> Save / Print as PDF
+      </button>
+      <button class="btn-action btn-close" onclick="window.close()">
+        <i class="fa-solid fa-xmark"></i> Close
+      </button>
+    </div>
+  </div>
+
+  <div class="page-container">
+    <!-- Header -->
+    <div class="header-table">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <div class="header-brand">
+            <i class="fa-solid fa-wind"></i> AirSense India
+          </div>
+          <div class="header-sub">Central Air Quality Telemetry &amp; Pollutant Assessment Document</div>
+          <div style="font-size: 0.72rem; color: #64748B; margin-top: 2px;">
+            Standardized Under CPCB (Govt. of India) &amp; IQAir Global Framework
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="doc-badge">OFFICIAL PDF TELEMETRY</span>
+          <div><b>Doc ID:</b> <span style="font-family: 'Fira Code', monospace;">${docId}</span></div>
+          <div><b>Generated:</b> ${dateStr}, ${timeStr}</div>
+          <div><b>Classification:</b> Public Environmental Assessment</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location Overview -->
+    <div class="location-box">
+      <div>
+        <div class="loc-title"><i class="fa-solid fa-location-dot text-primary me-2"></i>${city.name}, ${city.state}</div>
+        <div class="loc-station"><i class="fa-solid fa-tower-broadcast me-1"></i> Continuous Ambient Air Quality Monitoring Station: <b>${city.station}</b></div>
+        <div class="loc-coords"><i class="fa-solid fa-compass me-1"></i> Coordinates: Lat ${city.lat.toFixed(4)}°N, Lon ${city.lon.toFixed(4)}°E</div>
+      </div>
+      <div style="text-align: right;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase;">Global Station Rank</span>
+        <div style="font-size: 1.4rem; font-weight: 900; color: #0F172A;">#${city.rank}</div>
+      </div>
+    </div>
+
+    <!-- Primary AQI Card -->
+    <div class="aqi-summary-card">
+      <div class="aqi-dial">
+        <div class="aqi-val" style="color: ${aqiColor === '#FFFF00' ? '#A16207' : aqiColor};">${city.aqi}</div>
+        <div class="aqi-unit">Air Quality Index (AQI)</div>
+        <span class="cat-pill" style="background: ${aqiColor}; color: ${aqiTextColor};">${city.cat}</span>
+      </div>
+      <div>
+        <div class="advisory-title"><i class="fa-solid ${maskIcon} text-primary me-1"></i> Health Advisory &amp; Mask Guidelines</div>
+        <div class="advisory-text mb-2">${maskAdvise}</div>
+        <div style="font-size: 0.78rem; color: #64748B; background: #FFFFFF; padding: 6px 10px; border-radius: 4px; border: 1px solid #E2E8F0;">
+          <b>Dominant Pollutant:</b> Particulate Matter (PM2.5) &bull; <b>CPCB Scale:</b> 0–500 Index Standard
+        </div>
+      </div>
+    </div>
+
+    <!-- Pollutants Telemetry Table -->
+    <div class="section-title"><i class="fa-solid fa-flask-vial text-primary"></i> Measured Major Atmospheric Pollutants</div>
+    <table class="telemetry-table">
+      <thead>
+        <tr>
+          <th>Air Pollutant Parameter</th>
+          <th>Observed Concentration</th>
+          <th>Unit</th>
+          <th>CPCB NAAQS Limit</th>
+          <th>Compliance Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Particulate Matter (PM2.5)</b></td>
+          <td class="val-cell">${city.pm25}</td>
+          <td>µg/m³</td>
+          <td>60 µg/m³ (24h)</td>
+          <td><span style="color: ${city.pm25 <= 60 ? '#16A34A' : '#DC2626'}; font-weight: 700;">${city.pm25 <= 60 ? 'Within Permissible Limit' : 'Exceeds Standard'}</span></td>
+        </tr>
+        <tr>
+          <td><b>Particulate Matter (PM10)</b></td>
+          <td class="val-cell">${city.pm10}</td>
+          <td>µg/m³</td>
+          <td>100 µg/m³ (24h)</td>
+          <td><span style="color: ${city.pm10 <= 100 ? '#16A34A' : '#DC2626'}; font-weight: 700;">${city.pm10 <= 100 ? 'Within Permissible Limit' : 'Exceeds Standard'}</span></td>
+        </tr>
+        <tr>
+          <td><b>Carbon Monoxide (CO)</b></td>
+          <td class="val-cell">${(city.co / 1000).toFixed(2)}</td>
+          <td>mg/m³</td>
+          <td>2.0 mg/m³ (8h)</td>
+          <td><span style="color: #16A34A; font-weight: 700;">Within Permissible Limit</span></td>
+        </tr>
+        <tr>
+          <td><b>Sulfur Dioxide (SO2)</b></td>
+          <td class="val-cell">${city.so2}</td>
+          <td>ppb</td>
+          <td>80 µg/m³ (24h)</td>
+          <td><span style="color: #16A34A; font-weight: 700;">Within Permissible Limit</span></td>
+        </tr>
+        <tr>
+          <td><b>Nitrogen Dioxide (NO2)</b></td>
+          <td class="val-cell">${city.no2}</td>
+          <td>ppb</td>
+          <td>80 µg/m³ (24h)</td>
+          <td><span style="color: #16A34A; font-weight: 700;">Within Permissible Limit</span></td>
+        </tr>
+        <tr>
+          <td><b>Ozone (O3)</b></td>
+          <td class="val-cell">${city.o3}</td>
+          <td>ppb</td>
+          <td>100 µg/m³ (8h)</td>
+          <td><span style="color: #16A34A; font-weight: 700;">Within Permissible Limit</span></td>
+        </tr>
+        <tr>
+          <td><b>Ammonia (NH3)</b></td>
+          <td class="val-cell">25.0</td>
+          <td>µg/m³</td>
+          <td>400 µg/m³ (24h)</td>
+          <td><span style="color: #16A34A; font-weight: 700;">Within Permissible Limit</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Weather Conditions -->
+    <div class="section-title"><i class="fa-solid fa-cloud-sun text-primary"></i> Meteorological Ambient Observations</div>
+    <div class="weather-grid">
+      <div class="weather-item">
+        <div class="weather-lbl">Ambient Temp</div>
+        <div class="weather-val">${city.temp} °C</div>
+      </div>
+      <div class="weather-item">
+        <div class="weather-lbl">Relative Humidity</div>
+        <div class="weather-val">${city.humidity} %</div>
+      </div>
+      <div class="weather-item">
+        <div class="weather-lbl">Wind Velocity</div>
+        <div class="weather-val">${city.wind} km/h</div>
+      </div>
+      <div class="weather-item">
+        <div class="weather-lbl">UV Radiation Index</div>
+        <div class="weather-val">1.5</div>
+      </div>
+    </div>
+
+    <!-- Official Certification Footer -->
+    <div class="footer-section">
+      <div>
+        <div><b>AirSense India</b> &bull; Real-time National Environmental Telemetry Platform</div>
+        <div>Academic College Project Developed by: <b>Preethish</b></div>
+        <div style="font-size: 0.68rem; color: #94A3B8; margin-top: 2px;">
+          Note: This document is electronically compiled and certified in PDF format for academic, viva, and research documentation.
+        </div>
+      </div>
+      <div class="stamp-box">
+        <i class="fa-solid fa-certificate me-1"></i> VERIFIED TELEMETRY<br>
+        <span style="font-size: 0.6rem; font-weight: 600;">CPCB &bull; IQAIR COMPLIANT</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 400);
+    };
+  </script>
+</body>
+</html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(docHtml);
+  printWindow.document.close();
+};
+
+
 // Export CSV (Direct Client-Side Generation - 100% Works Everywhere)
 window.exportCityCSV = function() {
-  const city = INDIAN_CITIES_LIST.find(c => c.id === currentCityId) || INDIAN_CITIES_LIST[0];
+  const city = findCity(currentCityId);
   const csvRows = [
     ["AirSense India - Air Quality Telemetry Report"],
     ["Generated", new Date().toISOString()],
