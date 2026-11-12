@@ -21,7 +21,7 @@ from services.forecast import generate_7day_forecast
 from services.data_service import (
     get_all_cities, get_city_details, get_seasonal_patterns, 
     INDIAN_CITIES, generate_calendar_data, fetch_openweather_data, 
-    fetch_iqair_data, fetch_waqi_live_data, resolve_city_key
+    fetch_iqair_data, fetch_waqi_live_data, fetch_openmeteo_live_data, resolve_city_key
 )
 
 app = FastAPI(
@@ -113,10 +113,14 @@ def get_openweather_live(city_id: str, api_key: Optional[str] = None):
     if ow_result:
         return ow_result
         
-    # Fallback to WAQI or target CAAQMS station
+    # Fallback to configured WAQI token or free Open-Meteo live telemetry
     waqi_res = fetch_waqi_live_data(lat, lon)
     if waqi_res:
         return waqi_res
+
+    om_res = fetch_openmeteo_live_data(lat, lon, fallback_nh3=target["pollutants"].get("nh3", 18.0))
+    if om_res:
+        return om_res
         
     return {
         "source": "CAAQMS Baseline",

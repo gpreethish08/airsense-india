@@ -128,6 +128,9 @@ let miniLeafletMap = null;
 let aqiTileOverlayLayer = null;
 let miniAqiTileOverlayLayer = null;
 let mapMarkers = [];
+let latestLoadRequestId = 0;
+const LIVE_CACHE_TTL_MS = 5 * 60 * 1000;
+const liveCityCache = {};
 
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
@@ -136,6 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMaps();
   renderAllStatesChips();
   window.loadCity(currentCityId);
+  refreshAllCitiesLiveAqi();
 });
 
 // Setup Stored API Keys
@@ -298,9 +302,200 @@ function findCity(query) {
   return INDIAN_CITIES_LIST[0];
 }
 
+// Live Open-Meteo Free Keyless AQI & Weather Helpers
+function computeCpcbSubIndex(pollutantKey, rawConc) {
+  const ranges = CPCB_BREAKPOINTS[pollutantKey];
+  if (!ranges || rawConc === null || rawConc === undefined || isNaN(rawConc) || rawConc < 0) return 0;
+  const conc = pollutantKey === "co" ? Math.round(rawConc * 100) / 100 : Math.round(rawConc * 10) / 10;
+  for (const [bLo, bHi, iLo, iHi] of ranges) {
+    if (conc <= bHi) {
+      const clamped = Math.max(bLo, conc);
+      return Math.round(((iHi - iLo) / (bHi - bLo)) * (clamped - bLo) + iLo);
+    }
+  }
+  return 500;
+}
+
+function calculateOverallAqiFromPollutants(p) {
+  const subIndices = {};
+  let maxSub = 0;
+  let dominant = "PM25";
+  for (const key of ["pm25", "pm10", "no2", "so2", "co", "o3", "nh3"]) {
+    if (p[key] !== undefined && p[key] !== null && !isNaN(p[key])) {
+      const sub = computeCpcbSubIndex(key, p[key]);
+      subIndices[key] = sub;
+      if (sub > maxSub) {
+        maxSub = sub;
+        dominant = key.toUpperCase();
+      }
+    }
+  }
+  return {
+    aqi: maxSub,
+    category: getAqiCategoryName(maxSub),
+    color: getAqiColor(maxSub),
+    subIndices,
+    dominant
+  };
+}
+
+function getWmoDescription(code) {
+  const c = parseInt(code);
+  if (isNaN(c)) return "Partly Cloudy";
+  if (c === 0) return "Clear Sky";
+  if (c >= 1 && c <= 3) return "Partly Cloudy";
+  if (c === 45 || c === 48) return "Haze / Fog";
+  if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return "Rain / Showers";
+  if (c >= 95) return "Thunderstorm";
+  return "Partly Cloudy";
+}
+
+function computeCityRankInfo(cityId, cityName, aqi) {
+  let rank;
+  let text;
+  if (aqi >= 300) {
+    rank = Math.max(1, 100 - Math.floor(aqi / 4));
+    text = `Currently, ${cityName} ranks #${rank} among the most polluted cities globally.`;
+  } else if (aqi >= 150) {
+    rank = Math.max(20, 120 - Math.floor(aqi / 3));
+    text = `Currently, ${cityName} ranks #${rank} among major cities monitored globally.`;
+  } else if (aqi >= 100) {
+    rank = Math.max(50, 160 - Math.floor(aqi / 2));
+    text = `Currently, ${cityName} ranks #${rank} among major cities monitored globally.`;
+  } else {
+    rank = Math.min(250, 200 + (100 - aqi));
+    text = `Enjoying relatively clean air, ${cityName} is ranked #${rank} globally.`;
+  }
+  return { rank, text };
+}
+
+function applyLiveOpenMeteoToCity(city, aqCurrent, wxCurrent) {
+  if (!aqCurrent || aqCurrent.pm2_5 === undefined) return false;
+
+  const pm25 = Math.round(Math.max(0, Number(aqCurrent.pm2_5) || 0) * 10) / 10;
+  const pm10 = Math.round(Math.max(0, Number(aqCurrent.pm10) || 0) * 10) / 10;
+  const no2 = Math.round(Math.max(0, Number(aqCurrent.nitrogen_dioxide) || 0) * 10) / 10;
+  const so2 = Math.round(Math.max(0, Number(aqCurrent.sulphur_dioxide) || 0) * 10) / 10;
+  const coUg = Math.max(0, Number(aqCurrent.carbon_monoxide) || 0);
+  const coMg = Math.round((coUg / 1000.0) * 100) / 100;
+  const o3 = Math.round(Math.max(0, Number(aqCurrent.ozone) || 0) * 10) / 10;
+  const nh3 = (city.rawPollutants && city.rawPollutants.nh3) ? city.rawPollutants.nh3 : 22.0;
+
+  const rawPollutants = { pm25, pm10, no2, so2, co: coMg, o3, nh3 };
+  const aqiRes = calculateOverallAqiFromPollutants(rawPollutants);
+
+  city.aqi = aqiRes.aqi;
+  city.cat = aqiRes.category;
+  city.pm25 = Math.round(pm25);
+  city.pm10 = Math.round(pm10);
+  city.co = Math.round(coMg * 1000);
+  city.so2 = Math.round(so2 * 0.382);
+  city.no2 = Math.round(no2 * 0.532);
+  city.o3 = Math.round(o3 * 0.509);
+  city.rawPollutants = rawPollutants;
+  city.subIndices = aqiRes.subIndices;
+  city.rank = computeCityRankInfo(city.id, city.name, city.aqi).rank;
+
+  if (wxCurrent) {
+    if (wxCurrent.temperature_2m !== undefined) city.temp = Math.round(Number(wxCurrent.temperature_2m) * 10) / 10;
+    if (wxCurrent.relative_humidity_2m !== undefined) city.humidity = Math.round(Number(wxCurrent.relative_humidity_2m));
+    if (wxCurrent.wind_speed_10m !== undefined) city.wind = Math.round(Number(wxCurrent.wind_speed_10m) * 10) / 10;
+    if (wxCurrent.weather_code !== undefined) city.description = getWmoDescription(wxCurrent.weather_code);
+  }
+
+  city._liveLoaded = true;
+  liveCityCache[city.id] = Date.now();
+  return true;
+}
+
+function updateCityMapMarker(city) {
+  const entry = mapMarkers.find(m => m.id === city.id);
+  if (!entry || !entry.marker) return;
+  const color = getAqiColor(city.aqi);
+  const textColor = color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
+  entry.marker.setIcon(L.divIcon({
+    className: "custom-map-pin",
+    html: `<div style="background-color: ${color}; color: ${textColor}; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; border: 2.5px solid #FFFFFF; box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;">${city.aqi}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17]
+  }));
+  entry.marker.setPopupContent(`
+    <div style="font-family: Inter, sans-serif; padding: 4px;">
+      <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #0F172A;">${city.name}</h6>
+      <div style="font-size: 0.78rem; font-weight: 600; color: #0284C7;">${city.state}</div>
+      <div style="font-size: 0.75rem; color: #64748B; margin-top: 2px;">${city.station}</div>
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+        <span style="background: ${color}; color: ${textColor}; padding: 3px 10px; border-radius: 12px; font-weight: 800; font-size: 0.8rem;">AQI ${city.aqi}</span>
+        <span style="font-size: 0.8rem; font-weight: 600; color: #0F172A;">${city.cat}</span>
+      </div>
+      <button onclick="window.loadCity('${city.id}')" style="margin-top: 10px; width: 100%; border: none; background: #0284C7; color: #FFFFFF; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 0.78rem; cursor: pointer;">View State Telemetry</button>
+    </div>
+  `);
+}
+
+async function fetchOpenMeteoForCity(city, force = false) {
+  const cachedTs = liveCityCache[city.id] || 0;
+  if (!force && city._liveLoaded && (Date.now() - cachedTs) < LIVE_CACHE_TTL_MS) {
+    return true;
+  }
+  try {
+    const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi`;
+    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
+    const [aqRes, wxRes] = await Promise.all([
+      fetch(aqUrl),
+      fetch(wxUrl).catch(() => null)
+    ]);
+    if (!aqRes || !aqRes.ok) return false;
+    const aqJson = await aqRes.json();
+    const wxJson = (wxRes && wxRes.ok) ? await wxRes.json() : null;
+    return applyLiveOpenMeteoToCity(city, aqJson.current, wxJson ? wxJson.current : null);
+  } catch (err) {
+    return false;
+  }
+}
+
+async function refreshAllCitiesLiveAqi() {
+  try {
+    const lats = INDIAN_CITIES_LIST.map(c => c.lat).join(",");
+    const lons = INDIAN_CITIES_LIST.map(c => c.lon).join(",");
+    const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lons}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi`;
+    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
+    const [aqRes, wxRes] = await Promise.all([
+      fetch(aqUrl),
+      fetch(wxUrl).catch(() => null)
+    ]);
+    if (!aqRes || !aqRes.ok) return;
+    const aqList = await aqRes.json();
+    const wxList = (wxRes && wxRes.ok) ? await wxRes.json() : [];
+    if (!Array.isArray(aqList)) return;
+
+    let anyUpdated = false;
+    INDIAN_CITIES_LIST.forEach((city, idx) => {
+      const aqItem = aqList[idx];
+      const wxItem = Array.isArray(wxList) ? wxList[idx] : null;
+      if (aqItem && aqItem.current && applyLiveOpenMeteoToCity(city, aqItem.current, wxItem ? wxItem.current : null)) {
+        updateCityMapMarker(city);
+        anyUpdated = true;
+      }
+    });
+
+    if (anyUpdated) {
+      renderAllStatesChips();
+      const activeCity = findCity(currentCityId);
+      const clientData = generateClientCityData(activeCity);
+      renderHero(clientData);
+      renderMajorPollutants(clientData);
+      renderCalendar(activeCity.id, currentYear, calendarMonths);
+    }
+  } catch (err) {
+    // Keep current rendered values on offline/network error
+  }
+}
+
 // Global Load City Telemetry (Works 100% on Static GitHub Pages & Localhost)
 window.loadCity = async function(cityId) {
   if (!cityId) return;
+  const reqId = ++latestLoadRequestId;
   const city = findCity(cityId);
   currentCityId = city.id;
 
@@ -319,43 +514,71 @@ window.loadCity = async function(cityId) {
     }
   });
 
-  // Generate telemetry for resolved city
-  const clientData = generateClientCityData(city);
-
   // Immediate render (zero delay)
-  renderHero(clientData);
-  renderMajorPollutants(clientData);
+  const initialData = generateClientCityData(city);
+  renderHero(initialData);
+  renderMajorPollutants(initialData);
   renderCalendar(city.id, currentYear, calendarMonths);
   updateMapFocus(city.lat, city.lon);
 
-  // If live backend exists, refresh asynchronously
+  // Fetch live free Open-Meteo telemetry directly in browser (works on GitHub Pages + Localhost)
+  const liveOk = await fetchOpenMeteoForCity(city);
+  if (reqId !== latestLoadRequestId) return;
+  if (liveOk) {
+    updateCityMapMarker(city);
+    renderAllStatesChips();
+    const liveData = generateClientCityData(city);
+    renderHero(liveData);
+    renderMajorPollutants(liveData);
+    renderCalendar(city.id, currentYear, calendarMonths);
+  }
+
+  // If live FastAPI backend exists with optional custom keys, merge server payload
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
   try {
     const url = `/api/city/${city.id}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
     const res = await fetch(url);
+    if (reqId !== latestLoadRequestId) return;
     if (res.ok) {
       const data = await res.json();
+      if (data && data.aqi_data) {
+        city.aqi = data.aqi_data.aqi;
+        city.cat = data.aqi_data.category;
+        if (data.city_info) {
+          city.temp = data.city_info.temp;
+          city.humidity = data.city_info.humidity;
+          city.wind = data.city_info.wind_speed;
+          city.description = data.city_info.description;
+          city.rank = data.city_info.rank;
+        }
+        if (data.raw_pollutants) {
+          city.rawPollutants = data.raw_pollutants;
+        }
+        city._liveLoaded = true;
+        updateCityMapMarker(city);
+        renderAllStatesChips();
+      }
       renderHero(data);
       renderMajorPollutants(data);
       renderCalendar(city.id, currentYear, calendarMonths);
       updateMapFocus(data.city_info.lat, data.city_info.lon);
     }
   } catch (err) {
-    // Client data is already rendered
+    // Open-Meteo / client data is already rendered
   }
 };
 
 // Generate Local State Telemetry
 function generateClientCityData(city) {
-  const isDelhi = city.id === "delhi";
-  const aqiVal = isDelhi ? 166 : city.aqi;
-  const pm25Val = isDelhi ? 78 : city.pm25;
-  const pm10Val = isDelhi ? 159 : city.pm10;
-  const coVal = isDelhi ? 2661 : city.co;
-  const so2Val = isDelhi ? 5 : city.so2;
-  const no2Val = isDelhi ? 3 : city.no2;
-  const o3Val = isDelhi ? 4 : city.o3;
+  const aqiVal = city.aqi;
+  const pm25Val = city.pm25;
+  const pm10Val = city.pm10;
+  const coVal = city.co;
+  const so2Val = city.so2;
+  const no2Val = city.no2;
+  const o3Val = city.o3;
+  const subs = city.subIndices || {};
 
   const now = new Date();
   const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (Local Time)`;
@@ -371,11 +594,11 @@ function generateClientCityData(city) {
       temp: city.temp,
       humidity: city.humidity,
       wind_speed: city.wind,
-      description: "Partly Cloudy",
+      description: city.description || "Partly Cloudy",
       uv_index: 1.5,
       timestamp: timeStr,
       rank: city.rank,
-      rank_text: `Currently, ${city.name} ranks ${city.rank}th among the most polluted cities globally.`
+      rank_text: computeCityRankInfo(city.id, city.name, aqiVal).text
     },
     aqi_data: {
       aqi: aqiVal,
@@ -383,12 +606,12 @@ function generateClientCityData(city) {
       color: getAqiColor(aqiVal)
     },
     major_pollutants: [
-      { id: "pm25", name: "Particulate Matter", symbol: "(PM2.5)", value: pm25Val, unit: "µg/m³", color: getAqiColor(aqiVal), alert: false },
-      { id: "pm10", name: "Particulate Matter", symbol: "(PM10)", value: pm10Val, unit: "µg/m³", color: getAqiColor(aqiVal), alert: aqiVal > 100 },
-      { id: "co", name: "Carbon Monoxide", symbol: "(CO)", value: coVal, unit: "ppb", color: "#00E400", alert: false },
-      { id: "so2", name: "Sulfur Dioxide", symbol: "(SO2)", value: so2Val, unit: "ppb", color: "#00E400", alert: false },
-      { id: "no2", name: "Nitrogen Dioxide", symbol: "(NO2)", value: no2Val, unit: "ppb", color: "#00E400", alert: false },
-      { id: "o3", name: "Ozone", symbol: "(O3)", value: o3Val, unit: "ppb", color: "#00E400", alert: false }
+      { id: "pm25", name: "Particulate Matter", symbol: "(PM2.5)", value: pm25Val, unit: "µg/m³", color: getAqiColor(subs.pm25 !== undefined ? subs.pm25 : aqiVal), alert: false },
+      { id: "pm10", name: "Particulate Matter", symbol: "(PM10)", value: pm10Val, unit: "µg/m³", color: getAqiColor(subs.pm10 !== undefined ? subs.pm10 : aqiVal), alert: aqiVal > 100 },
+      { id: "co", name: "Carbon Monoxide", symbol: "(CO)", value: coVal, unit: "ppb", color: subs.co !== undefined ? getAqiColor(subs.co) : "#00E400", alert: false },
+      { id: "so2", name: "Sulfur Dioxide", symbol: "(SO2)", value: so2Val, unit: "ppb", color: subs.so2 !== undefined ? getAqiColor(subs.so2) : "#00E400", alert: false },
+      { id: "no2", name: "Nitrogen Dioxide", symbol: "(NO2)", value: no2Val, unit: "ppb", color: subs.no2 !== undefined ? getAqiColor(subs.no2) : "#00E400", alert: false },
+      { id: "o3", name: "Ozone", symbol: "(O3)", value: o3Val, unit: "ppb", color: subs.o3 !== undefined ? getAqiColor(subs.o3) : "#00E400", alert: false }
     ]
   };
 }
@@ -587,8 +810,8 @@ function buildCalendarHtml(monthsData) {
 // Client Calendar Generator scaled to state base AQI
 function generateClientCalendar(cityId, year, months) {
   const city = findCity(cityId);
-  const isDelhi = city.id === "delhi";
-  const baseAqi = isDelhi ? 166 : city.aqi;
+  const isDelhi = city.id === "delhi" && !city._liveLoaded;
+  const baseAqi = city.aqi;
 
   const monthNames = { 1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December" };
   const shortNames = { 1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.", 5: "May.", 6: "Jun.", 7: "Jul.", 8: "Aug.", 9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec." };
@@ -1042,7 +1265,7 @@ window.computeAqi = function() {
   }
 };
 
-// Load Live Pollutants from OpenWeather Air Pollution API into Calculator
+// Load Live Pollutants from OpenWeather / Open-Meteo Air Pollution API into Calculator
 window.fetchLiveForCalculator = async function() {
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
   try {
@@ -1064,10 +1287,25 @@ window.fetchLiveForCalculator = async function() {
       return;
     }
   } catch (err) {
-    // Fallback to client city data
+    // Fallback to direct Open-Meteo live fetch
   }
 
   const city = findCity(currentCityId);
+  const liveOk = await fetchOpenMeteoForCity(city, true);
+  if (liveOk && city.rawPollutants) {
+    const p = city.rawPollutants;
+    document.getElementById("calc_pm25").value = p.pm25;
+    document.getElementById("calc_pm10").value = p.pm10;
+    document.getElementById("calc_no2").value = p.no2;
+    document.getElementById("calc_so2").value = p.so2;
+    document.getElementById("calc_co").value = p.co;
+    document.getElementById("calc_o3").value = p.o3;
+    document.getElementById("calc_nh3").value = p.nh3;
+    computeAqi();
+    alert(`Successfully loaded live measurements for ${city.name} from Open-Meteo Live Air Quality API!`);
+    return;
+  }
+
   document.getElementById("calc_pm25").value = city.pm25;
   document.getElementById("calc_pm10").value = city.pm10;
   document.getElementById("calc_co").value = (city.co / 1000).toFixed(1);

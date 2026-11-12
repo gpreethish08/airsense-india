@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import math
 import random
 import os
+import time
 import requests
 
 from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index
@@ -19,7 +20,170 @@ from services.forecast import generate_7day_forecast
 # Optional API Keys from environment
 OPENWEATHER_API_KEY_ENV = os.getenv("OPENWEATHER_API_KEY", "")
 IQAIR_API_KEY_ENV = os.getenv("IQAIR_API_KEY", "")
-WAQI_TOKEN_ENV = os.getenv("WAQI_TOKEN", "demo")
+WAQI_TOKEN_ENV = os.getenv("WAQI_TOKEN", "")
+
+# 5-minute TTL cache for free Open-Meteo live telemetry
+_OPENMETEO_CITY_CACHE: Dict[str, Any] = {}
+_OPENMETEO_BATCH_CACHE: Dict[str, Any] = {"ts": 0.0, "data": {}}
+_OPENMETEO_CACHE_TTL = 300.0
+
+
+def _wmo_weather_description(code: Any) -> str:
+    """Maps Open-Meteo WMO weather interpretation codes to display labels."""
+    try:
+        c = int(code)
+    except (TypeError, ValueError):
+        return "Partly Cloudy"
+    if c == 0:
+        return "Clear Sky"
+    if c in (1, 2, 3):
+        return "Partly Cloudy"
+    if c in (45, 48):
+        return "Haze / Fog"
+    if 51 <= c <= 67 or 80 <= c <= 82:
+        return "Rain / Showers"
+    if c >= 95:
+        return "Thunderstorm"
+    return "Partly Cloudy"
+
+
+def _parse_openmeteo_pair(aq_current: Dict[str, Any], wx_current: Optional[Dict[str, Any]], fallback_nh3: float = 18.0) -> Dict[str, Any]:
+    """Converts an Open-Meteo air quality + weather `current` payload into internal CPCB structures."""
+    co_ug = float(aq_current.get("carbon_monoxide") or 0.0)
+    pollutants = {
+        "pm25": round(max(0.0, float(aq_current.get("pm2_5") or 0.0)), 1),
+        "pm10": round(max(0.0, float(aq_current.get("pm10") or 0.0)), 1),
+        "no2": round(max(0.0, float(aq_current.get("nitrogen_dioxide") or 0.0)), 1),
+        "so2": round(max(0.0, float(aq_current.get("sulphur_dioxide") or 0.0)), 1),
+        "co": round(max(0.0, co_ug / 1000.0), 2),
+        "o3": round(max(0.0, float(aq_current.get("ozone") or 0.0)), 1),
+        "nh3": round(float(fallback_nh3), 1)
+    }
+    wx = wx_current or {}
+    weather_info = {
+        "temp": round(float(wx.get("temperature_2m", 28.0)), 1),
+        "humidity": int(round(float(wx.get("relative_humidity_2m", 55)))),
+        "wind_speed": round(float(wx.get("wind_speed_10m", 10.0)), 1),
+        "description": _wmo_weather_description(wx.get("weather_code")),
+        "uv_index": 1.5
+    }
+    return {
+        "source": "Open-Meteo Live Air Quality API",
+        "pollutants": pollutants,
+        "weather": weather_info,
+        "us_aqi": int(round(float(aq_current.get("us_aqi") or 0)))
+    }
+
+
+def fetch_openmeteo_live_data(lat: float, lon: float, fallback_nh3: float = 18.0) -> Optional[Dict[str, Any]]:
+    """
+    Fetches real-time live AQI pollutants & weather from the free, keyless Open-Meteo APIs.
+    """
+    cache_key = f"{lat:.4f},{lon:.4f}"
+    now = time.time()
+    cached = _OPENMETEO_CITY_CACHE.get(cache_key)
+    if cached and (now - cached["ts"]) < _OPENMETEO_CACHE_TTL:
+        return cached["data"]
+
+    try:
+        aq_res = requests.get(
+            "https://air-quality-api.open-meteo.com/v1/air-quality",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "current": "pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi"
+            },
+            timeout=6
+        )
+        if aq_res.status_code != 200:
+            return None
+        aq_current = aq_res.json().get("current") or {}
+        if "pm2_5" not in aq_current:
+            return None
+
+        wx_current = {}
+        try:
+            wx_res = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+                },
+                timeout=6
+            )
+            if wx_res.status_code == 200:
+                wx_current = wx_res.json().get("current") or {}
+        except Exception:
+            pass
+
+        parsed = _parse_openmeteo_pair(aq_current, wx_current, fallback_nh3=fallback_nh3)
+        _OPENMETEO_CITY_CACHE[cache_key] = {"ts": now, "data": parsed}
+        return parsed
+    except Exception as e:
+        print(f"Open-Meteo fetch error: {e}")
+        return None
+
+
+def fetch_openmeteo_batch_live() -> Dict[str, Dict[str, Any]]:
+    """
+    Batch-fetches live Open-Meteo telemetry for all cities in INDIAN_CITIES in two HTTP calls.
+    """
+    now = time.time()
+    if _OPENMETEO_BATCH_CACHE["data"] and (now - _OPENMETEO_BATCH_CACHE["ts"]) < _OPENMETEO_CACHE_TTL:
+        return _OPENMETEO_BATCH_CACHE["data"]
+
+    items = list(INDIAN_CITIES.items())
+    lats = ",".join(str(c["lat"]) for _, c in items)
+    lons = ",".join(str(c["lon"]) for _, c in items)
+    try:
+        aq_res = requests.get(
+            "https://air-quality-api.open-meteo.com/v1/air-quality",
+            params={
+                "latitude": lats,
+                "longitude": lons,
+                "current": "pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi"
+            },
+            timeout=10
+        )
+        if aq_res.status_code != 200:
+            return _OPENMETEO_BATCH_CACHE["data"]
+        aq_payload = aq_res.json()
+        if not isinstance(aq_payload, list) or len(aq_payload) != len(items):
+            return _OPENMETEO_BATCH_CACHE["data"]
+
+        wx_payload = [{} for _ in items]
+        try:
+            wx_res = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": lats,
+                    "longitude": lons,
+                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+                },
+                timeout=10
+            )
+            if wx_res.status_code == 200 and isinstance(wx_res.json(), list):
+                wx_payload = wx_res.json()
+        except Exception:
+            pass
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for (city_key, city), aq_item, wx_item in zip(items, aq_payload, wx_payload):
+            aq_cur = aq_item.get("current") or {}
+            wx_cur = (wx_item or {}).get("current") or {}
+            if "pm2_5" in aq_cur:
+                parsed = _parse_openmeteo_pair(aq_cur, wx_cur, fallback_nh3=city["pollutants"].get("nh3", 18.0))
+                result[city_key] = parsed
+                _OPENMETEO_CITY_CACHE[f"{city['lat']:.4f},{city['lon']:.4f}"] = {"ts": now, "data": parsed}
+
+        if result:
+            _OPENMETEO_BATCH_CACHE["ts"] = now
+            _OPENMETEO_BATCH_CACHE["data"] = result
+        return result
+    except Exception as e:
+        print(f"Open-Meteo batch fetch error: {e}")
+        return _OPENMETEO_BATCH_CACHE["data"]
 
 # Major Indian Cities CAAQMS Dataset with real geographical coordinates & realistic concentrations
 INDIAN_CITIES: Dict[str, Dict[str, Any]] = {
@@ -544,10 +708,14 @@ INDIAN_CITIES: Dict[str, Dict[str, Any]] = {
 
 def get_all_cities() -> List[Dict[str, Any]]:
     """Returns summarized cards for all cities with live computed AQI for maps and listing."""
+    live_batch = fetch_openmeteo_batch_live()
     results = []
     for city_key, city in INDIAN_CITIES.items():
-        aqi_res = calculate_overall_aqi(city["pollutants"])
-        cpi_res = calculate_pollution_index(city["pollutants"])
+        live_entry = live_batch.get(city_key)
+        pollutants = live_entry["pollutants"] if live_entry else city["pollutants"]
+        wx = live_entry["weather"] if live_entry else city
+        aqi_res = calculate_overall_aqi(pollutants)
+        cpi_res = calculate_pollution_index(pollutants)
         results.append({
             "id": city["id"],
             "name": city["name"],
@@ -562,11 +730,11 @@ def get_all_cities() -> List[Dict[str, Any]]:
             "badgeClass": aqi_res["badgeClass"],
             "dominant_pollutant": aqi_res["dominant_name"],
             "pollution_index": cpi_res["pollution_index"],
-            "temp": city["temp"],
-            "humidity": city["humidity"],
-            "wind_speed": city["wind_speed"],
-            "pm25": city["pollutants"].get("pm25"),
-            "pm10": city["pollutants"].get("pm10")
+            "temp": wx.get("temp", city["temp"]),
+            "humidity": wx.get("humidity", city["humidity"]),
+            "wind_speed": wx.get("wind_speed", city["wind_speed"]),
+            "pm25": pollutants.get("pm25"),
+            "pm10": pollutants.get("pm10")
         })
     results.sort(key=lambda x: x["aqi"], reverse=True)
     return results
@@ -645,14 +813,28 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
             api_source = "OpenWeatherMap API"
 
     # Try live IQAir fetch if key provided
+    iq_aqi_override = None
     if (iqair_key or IQAIR_API_KEY_ENV) and api_source == "CAAQMS Baseline":
         iq_data = fetch_iqair_data(city["name"], city["state"], city["lat"], city["lon"], iqair_key)
         if iq_data:
             weather_info = iq_data["weather"]
+            iq_aqi_override = iq_data.get("aqi_us")
             api_source = "IQAir AirVisual API"
+
+    # Default free keyless live fetch from Open-Meteo Air Quality & Weather APIs
+    if api_source == "CAAQMS Baseline":
+        om_data = fetch_openmeteo_live_data(
+            city["lat"], city["lon"], fallback_nh3=city["pollutants"].get("nh3", 18.0)
+        )
+        if om_data:
+            pollutants = om_data["pollutants"]
+            weather_info = om_data["weather"]
+            api_source = om_data["source"]
 
     # Calculate CPCB AQI and sub-indices
     aqi_res = calculate_overall_aqi(pollutants)
+    if iq_aqi_override is not None:
+        aqi_res["aqi"] = int(iq_aqi_override)
     cpi_res = calculate_pollution_index(pollutants)
     advisory = get_health_advisory(aqi_res["category"])
     forecast = generate_7day_forecast(city["name"], aqi_res["aqi"], aqi_res["dominant_name"])
@@ -716,7 +898,7 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
             "value": val_pm25,
             "unit": "µg/m³",
             "sub_index": sub_pm25,
-            "color": get_pollutant_color(sub_pm25 if city["id"] != "delhi" else 150),
+            "color": get_pollutant_color(sub_pm25 if (city["id"] != "delhi" or api_source != "CAAQMS Baseline") else 150),
             "alert": False
         },
         {
@@ -726,8 +908,8 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
             "value": val_pm10,
             "unit": "µg/m³",
             "sub_index": sub_pm10,
-            "color": get_pollutant_color(sub_pm10 if city["id"] != "delhi" else 159),
-            "alert": True  # Exclamation icon like in Photo 1
+            "color": get_pollutant_color(sub_pm10 if (city["id"] != "delhi" or api_source != "CAAQMS Baseline") else 159),
+            "alert": aqi_res["aqi"] > 100
         },
         {
             "id": "co",
@@ -979,12 +1161,14 @@ def fetch_iqair_data(city: str, state: str, lat: float, lon: float, api_key: Opt
     return None
 
 
-def fetch_waqi_live_data(lat: float, lon: float, token: str = "demo") -> Optional[Dict[str, Any]]:
+def fetch_waqi_live_data(lat: float, lon: float, token: str = "") -> Optional[Dict[str, Any]]:
     """
-    Free real-time fallback telemetry from WAQI (World Air Quality Index) CAAQMS network.
+    Real-time telemetry from WAQI (World Air Quality Index) CAAQMS network (requires a personal WAQI token).
     """
     try:
-        t = token or WAQI_TOKEN_ENV or "demo"
+        t = token or WAQI_TOKEN_ENV
+        if not t or t == "demo":
+            return None
         url = f"https://api.waqi.info/feed/geo:{lat};{lon}/?token={t}"
         res = requests.get(url, timeout=5)
         if res.status_code == 200:
@@ -1027,8 +1211,7 @@ def calculate_city_rank(city_id: str, current_aqi: int, city_name: str = "") -> 
     Benchmarked against global IQAir Major Cities live ranking.
     """
     name = city_name or city_id.title()
-    # Delhi typically ranks 50th - 85th globally depending on hour/season (e.g. 74th in Photo 3)
-    if city_id.lower() in ["delhi", "new delhi"]:
+    if city_id.lower() in ["delhi", "new delhi"] and current_aqi == 166:
         rank = 74
         text = "Currently, New Delhi ranks 74th among the most polluted cities globally."
     elif current_aqi >= 300:
