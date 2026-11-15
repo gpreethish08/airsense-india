@@ -93,7 +93,7 @@ def get_city(city_id: str, openweather_key: Optional[str] = None, iqair_key: Opt
 
 
 @app.get("/api/calendar/{city_id}")
-def get_calendar(city_id: str, year: int = 2026, months: str = "8,9,10"):
+def get_calendar(city_id: str, year: int = 2026, months: str = "8,9,10,11,12,1,2"):
     """Returns daily AQI calendar data for specified months (e.g. August, September, October)."""
     month_list = [int(m.strip()) for m in months.split(",") if m.strip().isdigit()]
     if not month_list:

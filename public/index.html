@@ -476,7 +476,7 @@
         
         <div class="section-heading-row mb-3">
           <div>
-            <h2 class="section-main-title">Air Quality Calendar <span id="calYearLabel">2026</span></h2>
+            <h2 class="section-main-title">Air Quality Calendar <span id="calYearLabel">2026 - 2027</span></h2>
             <a href="#heroSection" id="calCityLink" class="section-city-link">Delhi</a>
           </div>
 
@@ -492,9 +492,21 @@
           </div>
         </div>
 
-        <!-- 3 Month Grids Container -->
+        <!-- Month Quick-Jump Navigation Bar (Past 3 Months, Current Month, Future 3 Months) -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pt-1">
+          <div class="d-flex flex-wrap align-items-center gap-1" id="calMonthPillsContainer">
+            <!-- Dynamically populated: Aug, Sep, Oct, Nov, Dec, Jan, Feb -->
+          </div>
+          <div>
+            <button id="btnToggleAllMonths" class="btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill" onclick="window.toggleAllCalendarMonths()">
+              <i class="fa-solid fa-calendar-days me-1"></i> Show All 7 Months
+            </button>
+          </div>
+        </div>
+
+        <!-- Month Grids Container -->
         <div class="row g-4" id="calendarMonthsContainer">
-          <!-- Populated dynamically: August, September, October -->
+          <!-- Populated dynamically: Past 3 Months, Current Month, Future 3 Months -->
         </div>
 
         <!-- Calendar Bottom Legend Bar & Navigation (Photo 2) -->
@@ -522,8 +534,8 @@
 
           <!-- Month Shift Controls -->
           <div class="d-flex align-items-center gap-2">
-            <button class="cal-nav-btn" onclick="window.prevCalendarMonths()" title="Previous Months"><i class="fa-solid fa-arrow-left"></i></button>
-            <button class="cal-nav-btn" onclick="window.nextCalendarMonths()" title="Next Months"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="cal-nav-btn" id="calPrevBtn" onclick="window.prevCalendarMonths()" title="Previous Months"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="cal-nav-btn" id="calNextBtn" onclick="window.nextCalendarMonths()" title="Next Months"><i class="fa-solid fa-arrow-right"></i></button>
           </div>
         </div>
 

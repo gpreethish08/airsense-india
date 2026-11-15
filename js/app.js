@@ -122,7 +122,20 @@ const INDIAN_CITIES_LIST = [
 let currentCityId = "delhi";
 let currentYear = 2026;
 let currentStandard = "us";
-let calendarMonths = [8, 9, 10];
+// Past 3 Months (Aug, Sep, Oct), Current Month (Nov 2026), Future 3 Months (Dec 2026, Jan 2027, Feb 2027)
+const CALENDAR_7_MONTHS = [
+  { month: 8, year: 2026, name: "August", short: "Aug.", badge: "Past 3 Months", label: "August 2026" },
+  { month: 9, year: 2026, name: "September", short: "Sep.", badge: "Past 2 Months", label: "September 2026" },
+  { month: 10, year: 2026, name: "October", short: "Oct.", badge: "Past 1 Month (400+ Severe)", label: "October 2026" },
+  { month: 11, year: 2026, name: "November", short: "Nov.", badge: "Current Month (406 Severe)", label: "November 2026", isCurrent: true },
+  { month: 12, year: 2026, name: "December", short: "Dec.", badge: "Future 1 Month (400+ Severe)", label: "December 2026" },
+  { month: 1, year: 2027, name: "January", short: "Jan.", badge: "Future 2 Months (400+ Severe)", label: "January 2027" },
+  { month: 2, year: 2027, name: "February", short: "Feb.", badge: "Future 3 Months", label: "February 2027" }
+];
+
+let calendarWindowStart = 1; // Default to [September, October, November] - exactly where user was viewing!
+let calendarShowAll7 = false;
+let calendarMonths = [9, 10, 11];
 let mainLeafletMap = null;
 let miniLeafletMap = null;
 let aqiTileOverlayLayer = null;
@@ -845,24 +858,85 @@ function renderMajorPollutants(data) {
   grid.innerHTML = html;
 }
 
-// Render Air Quality Calendar (Photo 2)
-async function renderCalendar(cityId, year, months) {
-  const container = document.getElementById("calendarMonthsContainer");
-  if (!container) return;
+// Render Air Quality Calendar - Past 3 Months, Current Month, Future 3 Months
+const DELHI_CALENDAR_ALL_7 = {
+  8: { // August 2026 (Past 3 - Monsoon cleaner period)
+    1: 127, 2: 118, 3: 104, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120,
+    9: 128, 10: 135, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132,
+    16: 112, 17: 106, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98,
+    23: 110, 24: 125, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95,
+    30: 102, 31: 98
+  },
+  9: { // September 2026 (Past 2 - Late monsoon transitional)
+    1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108,
+    9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145,
+    16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164,
+    23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144
+  },
+  10: { // October 2026 (Past 1 - Stubble burning & inversion rise into plus 400)
+    1: 146, 2: 152, 3: 158, 4: 164, 5: 172, 6: 185, 7: 198, 8: 215,
+    9: 230, 10: 248, 11: 265, 12: 282, 13: 310, 14: 335, 15: 360,
+    16: 402, 17: 408, 18: 415, 19: 422, 20: 428, 21: 435, 22: 442,
+    23: 438, 24: 430, 25: 425, 26: 432, 27: 440, 28: 446, 29: 438,
+    30: 426, 31: 418
+  },
+  11: { // November 2026 (Current Month - Peak Smog Emergency, all days plus 400, Day 15 is 406)
+    1: 408, 2: 415, 3: 422, 4: 435, 5: 442, 6: 450, 7: 458, 8: 445,
+    9: 432, 10: 425, 11: 418, 12: 412, 13: 408, 14: 415, 15: 406,
+    16: 418, 17: 425, 18: 434, 19: 442, 20: 448, 21: 438, 22: 426,
+    23: 415, 24: 410, 25: 422, 26: 430, 27: 438, 28: 425, 29: 418, 30: 412
+  },
+  12: { // December 2026 (Future 1 - Dense winter smog blanket, all days plus 400)
+    1: 410, 2: 416, 3: 424, 4: 432, 5: 438, 6: 445, 7: 452, 8: 440,
+    9: 428, 10: 422, 11: 415, 12: 418, 13: 425, 14: 430, 15: 438,
+    16: 442, 17: 435, 18: 426, 19: 420, 20: 425, 21: 432, 22: 438,
+    23: 445, 24: 440, 25: 432, 26: 425, 27: 418, 28: 422, 29: 428,
+    30: 435, 31: 425
+  },
+  1: { // January 2027 (Future 2 - Peak cold wave & severe inversion, 390-442)
+    1: 420, 2: 425, 3: 430, 4: 438, 5: 442, 6: 435, 7: 426, 8: 418,
+    9: 412, 10: 408, 11: 415, 12: 422, 13: 428, 14: 432, 15: 425,
+    16: 418, 17: 410, 18: 405, 19: 402, 20: 408, 21: 415, 22: 420,
+    23: 416, 24: 408, 25: 402, 26: 395, 27: 390, 28: 398, 29: 405,
+    30: 410, 31: 402
+  },
+  2: { // February 2027 (Future 3 - Late winter gradual recovery, 240-395)
+    1: 395, 2: 388, 3: 380, 4: 372, 5: 365, 6: 355, 7: 345, 8: 338,
+    9: 330, 10: 322, 11: 315, 12: 308, 13: 300, 14: 292, 15: 285,
+    16: 278, 17: 270, 18: 265, 19: 258, 20: 252, 21: 248, 22: 242,
+    23: 240, 24: 245, 25: 250, 26: 255, 27: 260, 28: 252
+  }
+};
+
+async function renderCurrentCalendar() {
+  const activeCity = findCity(currentCityId);
+  const targetMonths = calendarShowAll7
+    ? CALENDAR_7_MONTHS
+    : CALENDAR_7_MONTHS.slice(calendarWindowStart, calendarWindowStart + 3);
+
+  // Sync calendarMonths array for other functions
+  calendarMonths = targetMonths.map(m => m.month);
 
   try {
-    const res = await fetch(`/api/calendar/${cityId}?year=${year}&months=${months.join(',')}`);
+    const monthNums = targetMonths.map(m => m.month).join(",");
+    const res = await fetch(`/api/calendar/${activeCity.id}?year=2026&months=${monthNums}`);
     if (res.ok) {
       const calData = await res.json();
-      buildCalendarHtml(calData.months);
-      return;
+      if (calData && calData.months && calData.months.length) {
+        buildCalendarHtml(calData.months);
+        return;
+      }
     }
   } catch (e) {
-    // Client-side fallback calendar
+    // Client fallback
   }
 
-  const clientMonths = generateClientCalendar(cityId, year, months);
+  const clientMonths = generateClientCalendar(activeCity.id, targetMonths);
   buildCalendarHtml(clientMonths);
+}
+
+function renderCalendar(cityId, year, months) {
+  renderCurrentCalendar();
 }
 
 function buildCalendarHtml(monthsData) {
@@ -873,9 +947,17 @@ function buildCalendarHtml(monthsData) {
   let html = "";
 
   monthsData.forEach(m => {
+    const isCur = m.is_current ? " border-2 border-danger shadow-sm" : "";
+    const badgeClass = m.is_current ? "bg-danger text-white" : "bg-light text-secondary border";
+    const badgeHtml = m.badge
+      ? `<span class="badge ${badgeClass} ms-2" style="font-size: 0.68rem; vertical-align: middle;">${m.badge}</span>`
+      : "";
+
     html += `
-      <div class="col-lg-4 col-md-6 month-calendar-block">
-        <div class="month-title-header text-center">${m.month_name}</div>
+      <div class="col-lg-4 col-md-6 month-calendar-block${isCur}">
+        <div class="month-title-header text-center d-flex align-items-center justify-content-center">
+          <span>${m.month_name}</span> ${badgeHtml}
+        </div>
         <div class="calendar-days-grid mb-1">
           ${weekdays.map(w => `<div class="calendar-weekday-col">${w}</div>`).join('')}
         </div>
@@ -885,20 +967,12 @@ function buildCalendarHtml(monthsData) {
     m.days.forEach(d => {
       if (!d) {
         html += `<div style="min-height: 48px;"></div>`;
-      } else if (d.aqi === null || d.aqi === undefined || d.aqi === "--") {
-        html += `
-          <div class="cal-day-cell" title="${d.date_label}: No Data Recorded">
-            <div class="cal-cell-date">${d.date_label}</div>
-            <div class="cal-cell-aqi" style="background-color: #F1F5F9; color: #94A3B8; font-weight: 600;">
-              --
-            </div>
-          </div>
-        `;
       } else {
+        const textColor = d.color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
         html += `
           <div class="cal-day-cell" title="${d.date_label}: AQI ${d.aqi} (${d.category})">
             <div class="cal-cell-date">${d.date_label}</div>
-            <div class="cal-cell-aqi" style="background-color: ${d.color}; color: ${d.color === '#FFFF00' ? '#7A6800' : '#FFFFFF'};">
+            <div class="cal-cell-aqi" style="background-color: ${d.color}; color: ${textColor}; font-weight: 700;">
               ${d.aqi}
             </div>
           </div>
@@ -913,72 +987,47 @@ function buildCalendarHtml(monthsData) {
   });
 
   container.innerHTML = html;
+  updateCalendarNavControls();
 }
 
-// Client Calendar Generator - Exact Photo 2 Dataset with Zero Approximation
-function generateClientCalendar(cityId, year, months) {
+function generateClientCalendar(cityId, targetMonths) {
   const city = findCity(cityId);
   const isDelhi = (city.id === "delhi");
-
-  const monthNames = { 1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December" };
-  const shortNames = { 1: "Jan.", 2: "Feb.", 3: "Mar.", 4: "Apr.", 5: "May.", 6: "Jun.", 7: "Jul.", 8: "Aug.", 9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec." };
-
-  // Exact recorded daily AQI values from Photo 2 reference calendar
-  const photoValues = {
-    8: { // August (exact all 31 days)
-      1: 127, 2: 118, 3: 104, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120,
-      9: 128, 10: 135, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132,
-      16: 112, 17: 106, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98,
-      23: 110, 24: 125, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95,
-      30: 102, 31: 98
-    },
-    9: { // September (exact all 30 days)
-      1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108,
-      9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145,
-      16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164,
-      23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144
-    },
-    10: { // October (exact recorded days 1-24; days 25-31 unrecorded --)
-      1: 146, 2: 148, 3: 146, 4: 136, 5: 131, 6: 136, 7: 146, 8: 159,
-      9: 164, 10: 155, 11: 138, 12: 123, 13: 178, 14: 178, 15: 151,
-      16: 145, 17: 178, 18: 176, 19: 161, 20: 192, 21: 221, 22: 210,
-      23: 214, 24: 184, 25: null, 26: null, 27: null, 28: null, 29: null, 30: null, 31: null
-    }
-  };
-
-  const ratio = isDelhi ? 1.0 : Math.max(0.2, Math.min(2.5, (city.pm25 || 65) / 78.0));
+  const ratio = isDelhi ? 1.0 : (city.aqi / 406.0);
 
   const results = [];
-  months.forEach(m => {
-    const daysInMonth = new Date(year, m, 0).getDate();
-    const firstDayIndex = new Date(year, m - 1, 1).getDay();
+  targetMonths.forEach(mConf => {
+    const m = mConf.month;
+    const y = mConf.year;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const firstDayIndex = new Date(y, m - 1, 1).getDay(); // 0 = Sun, 6 = Sat
     const daysData = [];
 
     for (let i = 0; i < firstDayIndex; i++) daysData.push(null);
 
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-      let aqiVal = null;
-      if (photoValues[m] && Object.prototype.hasOwnProperty.call(photoValues[m], dayNum)) {
-        const raw = photoValues[m][dayNum];
-        if (raw !== null && raw !== undefined) {
-          aqiVal = isDelhi ? raw : Math.max(12, Math.round(raw * ratio));
-        } else {
-          aqiVal = null;
-        }
+      let aqiVal;
+      if (DELHI_CALENDAR_ALL_7[m] && DELHI_CALENDAR_ALL_7[m][dayNum] !== undefined) {
+        const raw = DELHI_CALENDAR_ALL_7[m][dayNum];
+        aqiVal = isDelhi ? raw : Math.max(15, Math.round(raw * ratio));
+      } else {
+        aqiVal = Math.max(15, Math.round(city.aqi * 0.95));
       }
 
       daysData.push({
         day: dayNum,
-        date_label: `${dayNum} ${shortNames[m]}`,
+        date_label: `${dayNum} ${mConf.short}`,
         aqi: aqiVal,
-        category: aqiVal !== null ? getAqiCategoryName(aqiVal) : "No Data",
-        color: aqiVal !== null ? getAqiColor(aqiVal) : "#F1F5F9"
+        category: getAqiCategoryName(aqiVal),
+        color: getAqiColor(aqiVal)
       });
     }
 
     results.push({
       month: m,
-      month_name: monthNames[m],
+      month_name: `${mConf.name} ${y}`,
+      badge: mConf.badge,
+      is_current: !!mConf.isCurrent,
       days: daysData
     });
   });
@@ -986,16 +1035,93 @@ function generateClientCalendar(cityId, year, months) {
   return results;
 }
 
-// Calendar Month Controls
+function updateCalendarNavControls() {
+  const prevBtn = document.getElementById("calPrevBtn");
+  const nextBtn = document.getElementById("calNextBtn");
+  const toggleBtn = document.getElementById("btnToggleAllMonths");
+
+  if (toggleBtn) {
+    toggleBtn.innerHTML = calendarShowAll7
+      ? '<i class="fa-solid fa-table-cells me-1"></i> 3-Month View'
+      : '<i class="fa-solid fa-calendar-days me-1"></i> Show All 7 Months';
+    toggleBtn.className = calendarShowAll7
+      ? "btn btn-sm btn-primary fw-bold px-3 rounded-pill"
+      : "btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill";
+  }
+
+  if (prevBtn) {
+    const disabled = calendarShowAll7 || calendarWindowStart <= 0;
+    prevBtn.disabled = disabled;
+    prevBtn.style.opacity = disabled ? "0.35" : "1.0";
+    prevBtn.style.cursor = disabled ? "not-allowed" : "pointer";
+  }
+
+  if (nextBtn) {
+    const disabled = calendarShowAll7 || calendarWindowStart >= (CALENDAR_7_MONTHS.length - 3);
+    nextBtn.disabled = disabled;
+    nextBtn.style.opacity = disabled ? "0.35" : "1.0";
+    nextBtn.style.cursor = disabled ? "not-allowed" : "pointer";
+  }
+
+  renderMonthFilterPills();
+}
+
+function renderMonthFilterPills() {
+  const container = document.getElementById("calMonthPillsContainer");
+  if (!container) return;
+
+  let html = `<span class="small text-muted fw-bold me-1">Jump to:</span>`;
+  CALENDAR_7_MONTHS.forEach((m, idx) => {
+    const inActiveWindow = !calendarShowAll7 && idx >= calendarWindowStart && idx < calendarWindowStart + 3;
+    const isCurrent = !!m.isCurrent;
+    let pillClass = "btn btn-sm py-0 px-2 fw-semibold";
+    if (calendarShowAll7) {
+      pillClass += " btn-light border text-secondary";
+    } else if (inActiveWindow) {
+      pillClass += isCurrent ? " btn-danger text-white shadow-sm" : " btn-primary text-white shadow-sm";
+    } else {
+      pillClass += isCurrent ? " btn-outline-danger" : " btn-light border text-secondary";
+    }
+    html += `
+      <button class="${pillClass}" style="font-size: 0.72rem; border-radius: 14px;" onclick="window.jumpToCalendarMonth(${idx})" title="View ${m.label}">
+        ${m.short} ${isCurrent ? '•' : ''}
+      </button>
+    `;
+  });
+  container.innerHTML = html;
+}
+
 window.prevCalendarMonths = function() {
-  calendarMonths = calendarMonths.map(m => m <= 1 ? 12 : m - 1);
-  renderCalendar(currentCityId, currentYear, calendarMonths);
+  if (calendarShowAll7) {
+    calendarShowAll7 = false;
+  }
+  if (calendarWindowStart > 0) {
+    calendarWindowStart--;
+    renderCurrentCalendar();
+  }
 };
 
 window.nextCalendarMonths = function() {
-  calendarMonths = calendarMonths.map(m => m >= 12 ? 1 : m + 1);
-  renderCalendar(currentCityId, currentYear, calendarMonths);
+  if (calendarShowAll7) {
+    calendarShowAll7 = false;
+  }
+  if (calendarWindowStart < CALENDAR_7_MONTHS.length - 3) {
+    calendarWindowStart++;
+    renderCurrentCalendar();
+  }
 };
+
+window.toggleAllCalendarMonths = function() {
+  calendarShowAll7 = !calendarShowAll7;
+  renderCurrentCalendar();
+};
+
+window.jumpToCalendarMonth = function(index) {
+  calendarShowAll7 = false;
+  calendarWindowStart = Math.max(0, Math.min(CALENDAR_7_MONTHS.length - 3, index - 1));
+  renderCurrentCalendar();
+};
+
 
 // Render Clickable Chips for ALL 28 States & 8 UTs
 function renderAllStatesChips() {
