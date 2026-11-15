@@ -235,24 +235,24 @@
             </div>
 
             <div class="d-flex align-items-baseline gap-2 mb-1">
-              <span id="heroAqiNumber" class="hero-aqi-number">166</span>
-              <span class="hero-aqi-unit" id="heroAqiUnitLabel">AQI (US)</span>
+              <span id="heroAqiNumber" class="hero-aqi-number">406</span>
+              <span class="hero-aqi-unit" id="heroAqiUnitLabel">AQI (IN)</span>
             </div>
 
             <div class="d-flex align-items-center gap-2 mb-3">
               <span class="small text-secondary fw-semibold">Air Quality is</span>
-              <span id="heroAqiCategory" class="hero-category-badge">Unhealthy</span>
+              <span id="heroAqiCategory" class="hero-category-badge" style="background-color: #8F3F97;">Severe</span>
             </div>
 
             <!-- Sub pollutants -->
             <div class="hero-pollutant-subtext mb-3">
-              PM2.5 : <b id="heroPm25">78</b> µg/m³ &nbsp;|&nbsp; PM10 : <b id="heroPm10">159</b> µg/m³
+              PM2.5 : <b id="heroPm25">263</b> µg/m³ &nbsp;|&nbsp; PM10 : <b id="heroPm10">200</b> µg/m³
             </div>
 
             <!-- Spectrum Rainbow Bar with Pointer -->
             <div class="aqi-spectrum-wrapper">
               <div class="aqi-spectrum-bar">
-                <div id="heroSpectrumPointer" class="aqi-spectrum-pointer" style="left: 45%;"></div>
+                <div id="heroSpectrumPointer" class="aqi-spectrum-pointer" style="left: 82%;"></div>
               </div>
               <div class="aqi-spectrum-labels">
                 <span>Good</span>
@@ -292,7 +292,7 @@
                 <div class="d-flex align-items-center gap-2">
                   <i id="heroWeatherIcon" class="fa-solid fa-cloud-sun text-primary fs-2"></i>
                   <div>
-                    <div id="heroWeatherTemp" class="weather-temp-val">34 °C</div>
+                    <div id="heroWeatherTemp" class="weather-temp-val">28.5 °C</div>
                     <div id="heroWeatherDesc" class="weather-condition-text">Partly Cloudy</div>
                   </div>
                 </div>
@@ -302,11 +302,11 @@
               <div class="row g-1 pt-2 weather-metrics-divider" style="border-top: 1px solid var(--border-color); border-bottom: 0;">
                 <div class="col-4 weather-metric-item">
                   <div class="weather-metric-label">Humidity</div>
-                  <div id="heroWeatherHumidity" class="weather-metric-val">17 %</div>
+                  <div id="heroWeatherHumidity" class="weather-metric-val">58 %</div>
                 </div>
                 <div class="col-4 weather-metric-item" style="border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
                   <div class="weather-metric-label">Wind Speed</div>
-                  <div id="heroWeatherWind" class="weather-metric-val">10.4 km/h</div>
+                  <div id="heroWeatherWind" class="weather-metric-val">3.6 km/h</div>
                 </div>
                 <div class="col-4 weather-metric-item">
                   <div class="weather-metric-label">UV Index</div>
@@ -320,8 +320,8 @@
 
         <!-- Bottom City Rank Bar (Photo 3) -->
         <div class="mt-4 pt-3 d-flex align-items-center flex-wrap gap-2" style="border-top: 1px solid rgba(0,0,0,0.06);">
-          <span class="rank-pill">Rank <span id="heroCityRank">74th</span></span>
-          <span id="heroRankText" class="rank-text">Currently, New Delhi ranks 74th among the most polluted cities globally.</span>
+          <span class="rank-pill">Rank <span id="heroCityRank">1st</span></span>
+          <span id="heroRankText" class="rank-text">Currently, New Delhi ranks #1 among the most polluted cities globally.</span>
         </div>
 
       </div>
@@ -353,7 +353,7 @@
             </div>
             <div class="pollutant-right">
               <div>
-                <div class="pollutant-num" id="cardVal_pm25">78</div>
+                <div class="pollutant-num" id="cardVal_pm25">263</div>
                 <div class="pollutant-unit">µg/m³</div>
               </div>
               <i class="fa-solid fa-chevron-right pollutant-chevron"></i>
@@ -375,7 +375,7 @@
             </div>
             <div class="pollutant-right">
               <div>
-                <div class="pollutant-num" id="cardVal_pm10">159</div>
+                <div class="pollutant-num" id="cardVal_pm10">200</div>
                 <div class="pollutant-unit">µg/m³</div>
               </div>
               <i class="fa-solid fa-chevron-right pollutant-chevron"></i>
@@ -607,11 +607,11 @@
         <div class="row g-3">
           <div class="col-md-3 col-sm-6">
             <label class="form-label small fw-bold text-secondary">PM2.5 (µg/m³)</label>
-            <input type="number" id="calc_pm25" class="form-control form-control-light" placeholder="e.g. 78" value="78">
+            <input type="number" id="calc_pm25" class="form-control form-control-light" placeholder="e.g. 263" value="263">
           </div>
           <div class="col-md-3 col-sm-6">
             <label class="form-label small fw-bold text-secondary">PM10 (µg/m³)</label>
-            <input type="number" id="calc_pm10" class="form-control form-control-light" placeholder="e.g. 159" value="159">
+            <input type="number" id="calc_pm10" class="form-control form-control-light" placeholder="e.g. 200" value="200">
           </div>
           <div class="col-md-3 col-sm-6">
             <label class="form-label small fw-bold text-secondary">NO₂ (µg/m³)</label>
