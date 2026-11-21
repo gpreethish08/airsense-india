@@ -20,7 +20,7 @@ from services.forecast import generate_7day_forecast
 # Optional API Keys from environment
 OPENWEATHER_API_KEY_ENV = os.getenv("OPENWEATHER_API_KEY", "")
 IQAIR_API_KEY_ENV = os.getenv("IQAIR_API_KEY", "")
-WAQI_TOKEN_ENV = os.getenv("WAQI_TOKEN", "d06a1fa1cc21ab9b9242b293a7520554bd915f16")
+WAQI_TOKEN_ENV = os.getenv("WAQI_TOKEN", "")
 
 # 5-minute TTL cache for free Open-Meteo live telemetry
 _OPENMETEO_CITY_CACHE: Dict[str, Any] = {}
@@ -1157,7 +1157,9 @@ def fetch_waqi_live_data(lat: float, lon: float, token: str = "") -> Optional[Di
     Queries Anand Vihar CAAQMS Station (@2553) for Delhi, and geo-stations for other cities.
     """
     try:
-        t = token or WAQI_TOKEN_ENV or "d06a1fa1cc21ab9b9242b293a7520554bd915f16"
+        t = token or WAQI_TOKEN_ENV
+        if not t:
+            return None
         is_delhi = (abs(lat - 28.6139) < 0.05 and abs(lon - 77.2090) < 0.05)
         url = f"https://api.waqi.info/feed/@2553/?token={t}" if is_delhi else f"https://api.waqi.info/feed/geo:{lat};{lon}/?token={t}"
         res = requests.get(url, timeout=6)

@@ -159,8 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
 function initApiKeys() {
   const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
   const owKey = localStorage.getItem("airsense_openweather_key") || "";
-  const mapKey = localStorage.getItem("airsense_map_key") || "demo";
-  const googleKey = localStorage.getItem("airsense_google_maps_key") || "AIzaSyDemoKeyMapsIndiaAirQuality2026";
+  const mapKey = localStorage.getItem("airsense_map_key") || "cec181c94519415685891484989a877e";
+  const googleKey = localStorage.getItem("airsense_google_maps_key") || "";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
   
   const elIqair = document.getElementById("inputIqairKey");
@@ -455,7 +455,7 @@ function updateCityMapMarker(city) {
   `);
 }
 
-const WAQI_PUBLIC_TOKEN = "d06a1fa1cc21ab9b9242b293a7520554bd915f16";
+const WAQI_PUBLIC_TOKEN = localStorage.getItem("airsense_waqi_token") || "";
 
 function applyLiveWaqiToCity(city, waqiData) {
   if (!waqiData || waqiData.status !== "ok" || !waqiData.data) return false;
@@ -518,11 +518,13 @@ async function fetchWaqiForCity(city, force = false) {
   if (!force && city._liveLoaded && (Date.now() - cachedTs) < LIVE_CACHE_TTL_MS) {
     return true;
   }
+  const token = localStorage.getItem("airsense_waqi_token") || WAQI_PUBLIC_TOKEN;
+  if (!token) return false;
   try {
     const isDelhi = city.id === "delhi";
     const url = isDelhi
-      ? `https://api.waqi.info/feed/@2553/?token=${WAQI_PUBLIC_TOKEN}`
-      : `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${WAQI_PUBLIC_TOKEN}`;
+      ? `https://api.waqi.info/feed/@2553/?token=${token}`
+      : `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${token}`;
     const res = await fetch(url);
     if (!res || !res.ok) return false;
     const json = await res.json();
@@ -1249,34 +1251,34 @@ window.toggleAqiHeatmap = function() {
   }
 };
 
-// Initialize Leaflet Maps with Google Maps Platform Demo Key & Tile Layers
+// Initialize Leaflet Maps with Map API Key (Geoapify) & Tile Layers
 function initMaps() {
-  const mapKey = localStorage.getItem("airsense_map_key") || "demo";
-  const googleKey = localStorage.getItem("airsense_google_maps_key") || "AIzaSyDemoKeyMapsIndiaAirQuality2026";
+  const mapKey = localStorage.getItem("airsense_map_key") || "cec181c94519415685891484989a877e";
+  const googleKey = localStorage.getItem("airsense_google_maps_key") || "";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
 
-  // Google Maps Roadmap Base Layer
-  const googleRoadmap = L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
-    subdomains: ["0", "1", "2", "3"],
+  // Geoapify Roadmap Base Layer (Powered by user Map API key)
+  const mapRoadmap = L.tileLayer(`https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${mapKey}`, {
     maxZoom: 20,
-    attribution: '&copy; <a href="https://maps.google.com">Google Maps Platform</a>'
+    attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   });
 
-  // Google Maps Satellite (Hybrid) Base Layer
+  // Satellite Base Layer
   const googleSatellite = L.tileLayer("https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
     subdomains: ["0", "1", "2", "3"],
     maxZoom: 20,
-    attribution: '&copy; <a href="https://maps.google.com">Google Maps Satellite</a>'
+    attribution: '&copy; Satellite'
   });
 
-  // Carto Light Clean Base Layer
-  const cartoLight = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  // Clean Light Base Layer
+  const cartoLight = L.tileLayer(`https://maps.geoapify.com/v1/tile/positron/{z}/{x}/{y}.png?apiKey=${mapKey}`, {
     maxZoom: 18,
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+    attribution: 'Powered by <a href="https://www.geoapify.com/" target="_blank">Geoapify</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   });
 
   baseTileLayers = {
-    google_road: googleRoadmap,
+    google_road: mapRoadmap,
+    geoapify_road: mapRoadmap,
     google_sat: googleSatellite,
     carto: cartoLight
   };
@@ -1286,9 +1288,8 @@ function initMaps() {
   if (miniEl && !miniLeafletMap) {
     miniLeafletMap = L.map("miniMap", { zoomControl: false, attributionControl: false }).setView([28.6139, 77.2090], 11);
     
-    // Google Roadmap on mini-map
-    L.tileLayer("https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
-      subdomains: ["0", "1", "2", "3"],
+    // Geoapify Roadmap on mini-map with user API key
+    L.tileLayer(`https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${mapKey}`, {
       maxZoom: 18
     }).addTo(miniLeafletMap);
 
@@ -1305,8 +1306,8 @@ function initMaps() {
   if (mapEl && !mainLeafletMap) {
     mainLeafletMap = L.map("indiaMap").setView([22.5, 79.5], 5);
 
-    // Default to Google Maps Roadmap
-    googleRoadmap.addTo(mainLeafletMap);
+    // Default to Geoapify Maps Roadmap
+    mapRoadmap.addTo(mainLeafletMap);
 
     // Live Air Quality Tile Overlay Layer
     aqiTileOverlayLayer = L.tileLayer("https://tiles.aqicn.org/tiles/usepa-aqi/{z}/{x}/{y}.png?token=" + mapKey, {

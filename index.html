@@ -554,7 +554,7 @@
             <!-- Map Mode / Layer Switcher -->
             <div class="btn-group btn-group-sm" role="group">
               <button class="btn btn-primary active rounded-start-pill px-3 fw-bold" id="btnLayerGoogleMap" onclick="window.setMapLayer('google_road')">
-                <i class="fa-solid fa-map me-1"></i> Google Maps (Demo Key)
+                <i class="fa-solid fa-map me-1"></i> Map View
               </button>
               <button class="btn btn-outline-secondary rounded-end-pill px-3 fw-bold" id="btnLayerSatellite" onclick="window.setMapLayer('google_sat')">
                 <i class="fa-solid fa-earth-americas me-1"></i> Google Satellite
@@ -731,24 +731,24 @@
             <div class="form-text small">Used to fetch real concentrations (PM2.5, PM10, NO₂, SO₂, CO, O₃, NH₃) for the CPCB calculator.</div>
           </div>
 
-          <!-- Google Maps Demo Key Input (New) -->
+          <!-- Google Maps API Key Input (Optional) -->
           <div class="mb-3">
             <label class="form-label small fw-bold text-dark d-flex justify-content-between">
-              <span>Google Maps Demo Key / API Key:</span>
-              <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank" class="small text-primary text-decoration-none">Get Maps Demo Key <i class="fa-solid fa-external-link small"></i></a>
+              <span>Google Maps API Key (Optional):</span>
+              <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank" class="small text-primary text-decoration-none">Get Maps Key <i class="fa-solid fa-external-link small"></i></a>
             </label>
-            <input type="text" id="inputGoogleMapsKey" class="form-control form-control-light font-monospace" value="AIzaSyDemoKeyMapsIndiaAirQuality2026" placeholder="e.g. AIzaSy... (Maps Demo Key)">
-            <div class="form-text small">Renders Google Maps with terrain/satellite views and state markers.</div>
+            <input type="text" id="inputGoogleMapsKey" class="form-control form-control-light font-monospace" value="" placeholder="Optional Google Maps API key">
+            <div class="form-text small">Renders optional Google Maps satellite and terrain layers.</div>
           </div>
 
-          <!-- Map API Key Input (New) -->
+          <!-- Map API Key Input (Geoapify) -->
           <div class="mb-3">
             <label class="form-label small fw-bold text-dark d-flex justify-content-between">
-              <span>WAQI Map Tile API Token:</span>
-              <a href="https://aqicn.org/data-platform/token/" target="_blank" class="small text-primary text-decoration-none">Get free token <i class="fa-solid fa-external-link small"></i></a>
+              <span>Map API Key:</span>
+              <span class="badge bg-success-subtle text-success">Active</span>
             </label>
-            <input type="text" id="inputMapKey" class="form-control form-control-light font-monospace" placeholder="e.g. demo (or your WAQI token)">
-            <div class="form-text small">Powers live geospatial air quality heat contour tile overlay across all of India.</div>
+            <input type="text" id="inputMapKey" class="form-control form-control-light font-monospace" value="cec181c94519415685891484989a877e" placeholder="Enter Map API key">
+            <div class="form-text small">Active Map API key powering interactive high-definition map tiles across all of India.</div>
           </div>
 
           <!-- Live AQI Heatmap Layer Switch -->
