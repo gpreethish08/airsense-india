@@ -110,9 +110,6 @@
             <a class="nav-link-custom" href="#pollutantsSection"><i class="fa-solid fa-smog text-primary me-1"></i> Pollutants</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link-custom" href="#calendarSection"><i class="fa-solid fa-calendar-days text-primary me-1"></i> Calendar</a>
-          </li>
-          <li class="nav-item">
             <a class="nav-link-custom" href="#mapSection"><i class="fa-solid fa-map-location-dot text-primary me-1"></i> India Map</a>
           </li>
           <li class="nav-item">
@@ -470,79 +467,7 @@
       </div>
     </section>
 
-    <!-- Section 3: Air Quality Calendar 2026 (Photo 2 Replica) -->
-    <section id="calendarSection" class="mb-5">
-      <div class="calendar-card">
-        
-        <div class="section-heading-row mb-3">
-          <div>
-            <h2 class="section-main-title">Air Quality Calendar <span id="calYearLabel">2026 - 2027</span></h2>
-            <a href="#heroSection" id="calCityLink" class="section-city-link">Delhi</a>
-          </div>
-
-          <div class="d-flex align-items-center gap-2">
-            <select id="calYearSelect" class="form-select form-select-sm" style="width: 100px; border-radius: 8px; font-weight: 600;">
-              <option value="2026" selected>2026</option>
-              <option value="2025">2025</option>
-            </select>
-            <select id="calStandardSelect" class="form-select form-select-sm" style="width: 120px; border-radius: 8px; font-weight: 600;">
-              <option value="us" selected>AQI (US)</option>
-              <option value="cpcb">AQI (CPCB)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Month Quick-Jump Navigation Bar (Past 3 Months, Current Month, Future 3 Months) -->
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pt-1">
-          <div class="d-flex flex-wrap align-items-center gap-1" id="calMonthPillsContainer">
-            <!-- Dynamically populated: Aug, Sep, Oct, Nov, Dec, Jan, Feb -->
-          </div>
-          <div>
-            <button id="btnToggleAllMonths" class="btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill" onclick="window.toggleAllCalendarMonths()">
-              <i class="fa-solid fa-calendar-days me-1"></i> Show All 7 Months
-            </button>
-          </div>
-        </div>
-
-        <!-- Month Grids Container -->
-        <div class="row g-4" id="calendarMonthsContainer">
-          <!-- Populated dynamically: Past 3 Months, Current Month, Future 3 Months -->
-        </div>
-
-        <!-- Calendar Bottom Legend Bar & Navigation (Photo 2) -->
-        <div class="cal-legend-container">
-          <div class="cal-legend-bar">
-            <div class="cal-legend-gradient"></div>
-            <div class="cal-legend-labels">
-              <span>Good</span>
-              <span>Moderate</span>
-              <span>Poor</span>
-              <span>Unhealthy</span>
-              <span>Severe</span>
-              <span>Hazardous</span>
-            </div>
-            <div class="cal-legend-ticks">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
-              <span>150</span>
-              <span>200</span>
-              <span>300</span>
-              <span>301+</span>
-            </div>
-          </div>
-
-          <!-- Month Shift Controls -->
-          <div class="d-flex align-items-center gap-2">
-            <button class="cal-nav-btn" id="calPrevBtn" onclick="window.prevCalendarMonths()" title="Previous Months"><i class="fa-solid fa-arrow-left"></i></button>
-            <button class="cal-nav-btn" id="calNextBtn" onclick="window.nextCalendarMonths()" title="Next Months"><i class="fa-solid fa-arrow-right"></i></button>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Section 4: Interactive India AQI Map -->
+    <!-- Section 3: Interactive India AQI Map -->
     <section id="mapSection" class="mb-5">
       <div class="clean-card p-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -708,27 +633,17 @@
         </div>
         <div class="modal-body p-4">
           <p class="small text-secondary mb-3">
-            Configure live API keys from <b>IQAir AirVisual</b> and <b>OpenWeatherMap Air Pollution API</b> to fetch real-time sensor measurements directly from official networks.
+            Live telemetry is powered directly by the official <b>CPCB Real-Time CAAQMS Network (data.gov.in)</b> and interactive map tiles via <b>Geoapify</b>.
           </p>
 
-          <!-- IQAir Key Input -->
+          <!-- National CPCB AQI Key Input (data.gov.in) -->
           <div class="mb-3">
             <label class="form-label small fw-bold text-dark d-flex justify-content-between">
-              <span>IQAir AirVisual API Key:</span>
-              <a href="https://www.iqair.com/air-pollution-data-api" target="_blank" class="small text-primary text-decoration-none">Get free key <i class="fa-solid fa-external-link small"></i></a>
+              <span>National CPCB Air Quality API Key (data.gov.in):</span>
+              <span class="badge bg-success-subtle text-success">Active</span>
             </label>
-            <input type="text" id="inputIqairKey" class="form-control form-control-light font-monospace" placeholder="e.g. 1a2b3c4d-5e6f-7g8h-9i0j...">
-            <div class="form-text small">Used for live city AQI, global rank, and outdoor weather.</div>
-          </div>
-
-          <!-- OpenWeather Air Pollution Key Input -->
-          <div class="mb-3">
-            <label class="form-label small fw-bold text-dark d-flex justify-content-between">
-              <span>OpenWeatherMap Air Pollution Key:</span>
-              <a href="https://openweathermap.org/api/air-pollution" target="_blank" class="small text-primary text-decoration-none">Get free key <i class="fa-solid fa-external-link small"></i></a>
-            </label>
-            <input type="text" id="inputOpenweatherKey" class="form-control form-control-light font-monospace" placeholder="e.g. 8b9f3e... (32-character key)">
-            <div class="form-text small">Used to fetch real concentrations (PM2.5, PM10, NO₂, SO₂, CO, O₃, NH₃) for the CPCB calculator.</div>
+            <input type="text" id="inputDataGovKey" class="form-control form-control-light font-monospace" value="579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b" placeholder="data.gov.in API key">
+            <div class="form-text small">Connects to official Central Pollution Control Board (CPCB) CAAQMS ground stations across India.</div>
           </div>
 
           <!-- Google Maps API Key Input (Optional) -->

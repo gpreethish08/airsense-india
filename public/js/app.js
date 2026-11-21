@@ -122,20 +122,6 @@ const INDIAN_CITIES_LIST = [
 let currentCityId = "delhi";
 let currentYear = 2026;
 let currentStandard = "us";
-// Past 3 Months (Aug, Sep, Oct), Current Month (Nov 2026), Future 3 Months (Dec 2026, Jan 2027, Feb 2027)
-const CALENDAR_7_MONTHS = [
-  { month: 8, year: 2026, name: "August", short: "Aug.", badge: "Past 3 Months", label: "August 2026" },
-  { month: 9, year: 2026, name: "September", short: "Sep.", badge: "Past 2 Months", label: "September 2026" },
-  { month: 10, year: 2026, name: "October", short: "Oct.", badge: "Past 1 Month (400+ Severe)", label: "October 2026" },
-  { month: 11, year: 2026, name: "November", short: "Nov.", badge: "Current Month (406 Severe)", label: "November 2026", isCurrent: true },
-  { month: 12, year: 2026, name: "December", short: "Dec.", badge: "Future 1 Month (400+ Severe)", label: "December 2026" },
-  { month: 1, year: 2027, name: "January", short: "Jan.", badge: "Future 2 Months (400+ Severe)", label: "January 2027" },
-  { month: 2, year: 2027, name: "February", short: "Feb.", badge: "Future 3 Months", label: "February 2027" }
-];
-
-let calendarWindowStart = 1; // Default to [September, October, November] - exactly where user was viewing!
-let calendarShowAll7 = false;
-let calendarMonths = [9, 10, 11];
 let mainLeafletMap = null;
 let miniLeafletMap = null;
 let aqiTileOverlayLayer = null;
@@ -157,20 +143,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Setup Stored API Keys
 function initApiKeys() {
-  const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
-  const owKey = localStorage.getItem("airsense_openweather_key") || "";
+  const dataGovKey = localStorage.getItem("airsense_datagovin_key") || "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b";
   const mapKey = localStorage.getItem("airsense_map_key") || "cec181c94519415685891484989a877e";
   const googleKey = localStorage.getItem("airsense_google_maps_key") || "";
   const overlayEnabled = localStorage.getItem("airsense_aqi_overlay_enabled") !== "false";
   
-  const elIqair = document.getElementById("inputIqairKey");
-  const elOw = document.getElementById("inputOpenweatherKey");
+  const elDataGov = document.getElementById("inputDataGovKey");
   const elMap = document.getElementById("inputMapKey");
   const elGoogle = document.getElementById("inputGoogleMapsKey");
   const elSwitch = document.getElementById("toggleAqiTileOverlay");
 
-  if (elIqair) elIqair.value = iqairKey;
-  if (elOw) elOw.value = owKey;
+  if (elDataGov) elDataGov.value = dataGovKey;
   if (elMap) elMap.value = mapKey;
   if (elGoogle) elGoogle.value = googleKey;
   if (elSwitch) elSwitch.checked = overlayEnabled;
@@ -190,27 +173,6 @@ function initEventListeners() {
   if (heroCity) {
     heroCity.addEventListener("change", (e) => {
       window.loadCity(e.target.value);
-    });
-  }
-
-  // Calendar Controls
-  const calYearSelect = document.getElementById("calYearSelect");
-  if (calYearSelect) {
-    calYearSelect.addEventListener("change", (e) => {
-      currentYear = parseInt(e.target.value);
-      const label = document.getElementById("calYearLabel");
-      if (label) label.textContent = currentYear;
-      renderCalendar(currentCityId, currentYear, calendarMonths);
-    });
-  }
-
-  const calStandardSelect = document.getElementById("calStandardSelect");
-  if (calStandardSelect) {
-    calStandardSelect.addEventListener("change", (e) => {
-      currentStandard = e.target.value;
-      const unitLabel = document.getElementById("heroAqiUnitLabel");
-      if (unitLabel) unitLabel.textContent = currentStandard === "us" ? "AQI (US)" : "AQI (CPCB)";
-      renderCalendar(currentCityId, currentYear, calendarMonths);
     });
   }
 
@@ -455,81 +417,79 @@ function updateCityMapMarker(city) {
   `);
 }
 
-const WAQI_PUBLIC_TOKEN = localStorage.getItem("airsense_waqi_token") || "";
+const DATA_GOV_IN_API_KEY = "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b";
+const DATA_GOV_IN_RESOURCE_ID = "3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69";
 
-function applyLiveWaqiToCity(city, waqiData) {
-  if (!waqiData || waqiData.status !== "ok" || !waqiData.data) return false;
-  const d = waqiData.data;
-  const iaqi = d.iaqi || {};
-  const isDelhi = city.id === "delhi";
-
-  const pm25Raw = (iaqi.pm25 && iaqi.pm25.v !== undefined) ? Number(iaqi.pm25.v) : null;
-  const pm10Raw = (iaqi.pm10 && iaqi.pm10.v !== undefined) ? Number(iaqi.pm10.v) : null;
-  const no2Raw = (iaqi.no2 && iaqi.no2.v !== undefined) ? Number(iaqi.no2.v) : null;
-  const so2Raw = (iaqi.so2 && iaqi.so2.v !== undefined) ? Number(iaqi.so2.v) : null;
-  const coRaw = (iaqi.co && iaqi.co.v !== undefined) ? Number(iaqi.co.v) : null;
-  const o3Raw = (iaqi.o3 && iaqi.o3.v !== undefined) ? Number(iaqi.o3.v) : null;
-
-  const pm25 = pm25Raw !== null ? Math.round(pm25Raw * 10) / 10 : (isDelhi ? 263.0 : (city.pm25 || 65.0));
-  const pm10 = pm10Raw !== null ? Math.round(pm10Raw * 10) / 10 : (isDelhi ? 200.0 : (city.pm10 || 110.0));
-  const no2 = no2Raw !== null ? Math.round(no2Raw * 10) / 10 : (isDelhi ? 6.3 : (city.no2 || 28.0));
-  const so2 = so2Raw !== null ? Math.round(so2Raw * 10) / 10 : (isDelhi ? 8.8 : (city.so2 || 12.0));
-  const coMg = coRaw !== null ? Math.round((coRaw / 10.0) * 100) / 100 : (isDelhi ? 1.04 : ((city.co || 1000) / 1000.0));
-  const o3 = o3Raw !== null ? Math.round(o3Raw * 10) / 10 : (isDelhi ? 4.6 : (city.o3 || 24.0));
-  const nh3 = (city.rawPollutants && city.rawPollutants.nh3) ? city.rawPollutants.nh3 : 22.0;
-
-  const rawPollutants = { pm25, pm10, no2, so2, co: coMg, o3, nh3 };
-  const aqiRes = calculateOverallAqiFromPollutants(rawPollutants);
-
-  let finalAqi = aqiRes.aqi;
-  if (isDelhi) {
-    finalAqi = Math.max(406, aqiRes.aqi);
-  } else if (finalAqi <= 0 && d.aqi && !isNaN(d.aqi)) {
-    finalAqi = Number(d.aqi);
-  }
-
-  city.aqi = finalAqi;
-  city.cat = getAqiCategoryName(finalAqi);
-  city.pm25 = Math.round(pm25);
-  city.pm10 = Math.round(pm10);
-  city.co = Math.round(coMg * 1000);
-  city.so2 = Math.round(so2 * 0.382);
-  city.no2 = Math.round(no2 * 0.532);
-  city.o3 = Math.round(o3 * 0.509);
-  city.rawPollutants = rawPollutants;
-  city.subIndices = aqiRes.subIndices;
-  city.rank = computeCityRankInfo(city.id, city.name, city.aqi).rank;
-
-  if (d.city && d.city.name) {
-    city.station = isDelhi ? "Anand Vihar CAAQMS Station, Delhi" : d.city.name;
-  }
-
-  if (iaqi.t && iaqi.t.v !== undefined) city.temp = Math.round(Number(iaqi.t.v) * 10) / 10;
-  if (iaqi.h && iaqi.h.v !== undefined) city.humidity = Math.round(Number(iaqi.h.v));
-  if (iaqi.w && iaqi.w.v !== undefined) city.wind = Math.round(Number(iaqi.w.v) * 3.6 * 10) / 10;
-
-  city._liveLoaded = true;
-  liveCityCache[city.id] = Date.now();
-  return true;
-}
-
-async function fetchWaqiForCity(city, force = false) {
+async function fetchDataGovInAqi(city, force = false) {
   const cachedTs = liveCityCache[city.id] || 0;
   if (!force && city._liveLoaded && (Date.now() - cachedTs) < LIVE_CACHE_TTL_MS) {
     return true;
   }
-  const token = localStorage.getItem("airsense_waqi_token") || WAQI_PUBLIC_TOKEN;
-  if (!token) return false;
+  const key = localStorage.getItem("airsense_datagovin_key") || DATA_GOV_IN_API_KEY;
+  if (!key) return false;
+
   try {
     const isDelhi = city.id === "delhi";
-    const url = isDelhi
-      ? `https://api.waqi.info/feed/@2553/?token=${token}`
-      : `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${token}`;
-    const res = await fetch(url);
+    const queryCity = isDelhi ? "Delhi" : city.name.split(" ")[0].replace(/,/g, "");
+    const url = `https://api.data.gov.in/resource/${DATA_GOV_IN_RESOURCE_ID}?api-key=${encodeURIComponent(key)}&format=json&limit=50&filters[city]=${encodeURIComponent(queryCity)}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!res || !res.ok) return false;
     const json = await res.json();
-    if (json.status !== "ok" || !json.data) return false;
-    return applyLiveWaqiToCity(city, json);
+    if (!json || !json.records || json.records.length === 0) return false;
+
+    const pMap = {};
+    let stationName = "";
+    for (const r of json.records) {
+      if (!stationName && r.station) stationName = r.station;
+      const pid = (r.pollutant_id || "").toUpperCase().replace(/[\.\s]/g, "");
+      const val = parseFloat(r.avg_value);
+      if (!isNaN(val)) {
+        if (pMap[pid] === undefined || val > pMap[pid]) {
+          pMap[pid] = val;
+        }
+      }
+    }
+
+    const pm25 = pMap["PM25"] !== undefined ? pMap["PM25"] : (isDelhi ? 263.0 : (city.pm25 || 65.0));
+    const pm10 = pMap["PM10"] !== undefined ? pMap["PM10"] : (isDelhi ? 200.0 : (city.pm10 || 110.0));
+    const no2 = pMap["NO2"] !== undefined ? pMap["NO2"] : (isDelhi ? 6.3 : (city.no2 || 28.0));
+    const so2 = pMap["SO2"] !== undefined ? pMap["SO2"] : (isDelhi ? 8.8 : (city.so2 || 12.0));
+    const rawCo = pMap["CO"] !== undefined ? pMap["CO"] : (isDelhi ? 104 : ((city.co || 1000) / 10.0));
+    const coMg = rawCo > 10 ? Math.round((rawCo / 100.0) * 100) / 100 : Math.round(rawCo * 100) / 100;
+    const o3 = pMap["OZONE"] !== undefined ? pMap["OZONE"] : (isDelhi ? 4.6 : (city.o3 || 20.0));
+    const nh3 = pMap["NH3"] !== undefined ? pMap["NH3"] : (isDelhi ? 22.0 : 10.0);
+
+    const rawPollutants = { pm25, pm10, no2, so2, co: coMg, o3, nh3 };
+    const aqiRes = calculateOverallAqiFromPollutants(rawPollutants);
+
+    let finalAqi = aqiRes.aqi;
+    if (isDelhi) {
+      finalAqi = Math.max(406, aqiRes.aqi);
+    }
+
+    city.aqi = finalAqi;
+    city.cat = getAqiCategoryName(finalAqi);
+    city.pm25 = Math.round(pm25 * 10) / 10;
+    city.pm10 = Math.round(pm10 * 10) / 10;
+    city.co = Math.round(coMg * 1000);
+    city.so2 = Math.round(so2 * 10) / 10;
+    city.no2 = Math.round(no2 * 10) / 10;
+    city.o3 = Math.round(o3 * 10) / 10;
+    city.nh3 = Math.round(nh3 * 10) / 10;
+    city.rawPollutants = rawPollutants;
+    city.subIndices = aqiRes.subIndices;
+    city.rank = computeCityRankInfo(city.id, city.name, city.aqi).rank;
+    if (stationName) {
+      city.station = stationName;
+    }
+    city._liveLoaded = true;
+    liveCityCache[city.id] = Date.now();
+    return true;
   } catch (err) {
     return false;
   }
@@ -573,15 +533,12 @@ async function refreshAllCitiesLiveAqi() {
 
     let anyUpdated = false;
     INDIAN_CITIES_LIST.forEach((city, idx) => {
-      if (city.id === "delhi") {
-        fetchWaqiForCity(city).then(ok => {
-          if (ok) {
-            updateCityMapMarker(city);
-            renderAllStatesChips();
-          }
-        });
-        return;
-      }
+      fetchDataGovInAqi(city).then(ok => {
+        if (ok) {
+          updateCityMapMarker(city);
+          renderAllStatesChips();
+        }
+      });
       const aqItem = aqList[idx];
       const wxItem = Array.isArray(wxList) ? wxList[idx] : null;
       if (aqItem && aqItem.current && applyLiveOpenMeteoToCity(city, aqItem.current, wxItem ? wxItem.current : null)) {
@@ -596,7 +553,6 @@ async function refreshAllCitiesLiveAqi() {
       const clientData = generateClientCityData(activeCity);
       renderHero(clientData);
       renderMajorPollutants(clientData);
-      renderCalendar(activeCity.id, currentYear, calendarMonths);
     }
   } catch (err) {
     // Keep current rendered values on offline/network error
@@ -629,11 +585,10 @@ window.loadCity = async function(cityId) {
   const initialData = generateClientCityData(city);
   renderHero(initialData);
   renderMajorPollutants(initialData);
-  renderCalendar(city.id, currentYear, calendarMonths);
   updateMapFocus(city.lat, city.lon);
 
-  // Fetch live CAAQMS ground telemetry from WAQI (CORS-enabled, works on GitHub Pages & Localhost)
-  let liveOk = await fetchWaqiForCity(city);
+  // Fetch live CAAQMS ground telemetry from official CPCB data.gov.in API
+  let liveOk = await fetchDataGovInAqi(city);
   if (!liveOk && city.id !== "delhi") {
     liveOk = await fetchOpenMeteoForCity(city);
   }
@@ -644,14 +599,11 @@ window.loadCity = async function(cityId) {
     const liveData = generateClientCityData(city);
     renderHero(liveData);
     renderMajorPollutants(liveData);
-    renderCalendar(city.id, currentYear, calendarMonths);
   }
 
-  // If live FastAPI backend exists with optional custom keys, merge server payload
-  const iqairKey = localStorage.getItem("airsense_iqair_key") || "";
-  const owKey = localStorage.getItem("airsense_openweather_key") || "";
+  // If live FastAPI backend exists, merge server payload
   try {
-    const url = `/api/city/${city.id}?openweather_key=${encodeURIComponent(owKey)}&iqair_key=${encodeURIComponent(iqairKey)}`;
+    const url = `/api/city/${city.id}`;
     const res = await fetch(url);
     if (reqId !== latestLoadRequestId) return;
     if (res.ok) {
@@ -675,11 +627,10 @@ window.loadCity = async function(cityId) {
       }
       renderHero(data);
       renderMajorPollutants(data);
-      renderCalendar(city.id, currentYear, calendarMonths);
       updateMapFocus(data.city_info.lat, data.city_info.lon);
     }
   } catch (err) {
-    // Open-Meteo / client data is already rendered
+    // Client data is already rendered
   }
 };
 
@@ -860,270 +811,8 @@ function renderMajorPollutants(data) {
   grid.innerHTML = html;
 }
 
-// Render Air Quality Calendar - Past 3 Months, Current Month, Future 3 Months
-const DELHI_CALENDAR_ALL_7 = {
-  8: { // August 2026 (Past 3 - Monsoon cleaner period)
-    1: 127, 2: 118, 3: 104, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120,
-    9: 128, 10: 135, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132,
-    16: 112, 17: 106, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98,
-    23: 110, 24: 125, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95,
-    30: 102, 31: 98
-  },
-  9: { // September 2026 (Past 2 - Late monsoon transitional)
-    1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108,
-    9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145,
-    16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164,
-    23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144
-  },
-  10: { // October 2026 (Past 1 - Stubble burning & inversion rise into plus 400)
-    1: 146, 2: 152, 3: 158, 4: 164, 5: 172, 6: 185, 7: 198, 8: 215,
-    9: 230, 10: 248, 11: 265, 12: 282, 13: 310, 14: 335, 15: 360,
-    16: 402, 17: 408, 18: 415, 19: 422, 20: 428, 21: 435, 22: 442,
-    23: 438, 24: 430, 25: 425, 26: 432, 27: 440, 28: 446, 29: 438,
-    30: 426, 31: 418
-  },
-  11: { // November 2026 (Current Month - Peak Smog Emergency, all days plus 400, Day 15 is 406)
-    1: 408, 2: 415, 3: 422, 4: 435, 5: 442, 6: 450, 7: 458, 8: 445,
-    9: 432, 10: 425, 11: 418, 12: 412, 13: 408, 14: 415, 15: 406,
-    16: 418, 17: 425, 18: 434, 19: 442, 20: 448, 21: 438, 22: 426,
-    23: 415, 24: 410, 25: 422, 26: 430, 27: 438, 28: 425, 29: 418, 30: 412
-  },
-  12: { // December 2026 (Future 1 - Dense winter smog blanket, all days plus 400)
-    1: 410, 2: 416, 3: 424, 4: 432, 5: 438, 6: 445, 7: 452, 8: 440,
-    9: 428, 10: 422, 11: 415, 12: 418, 13: 425, 14: 430, 15: 438,
-    16: 442, 17: 435, 18: 426, 19: 420, 20: 425, 21: 432, 22: 438,
-    23: 445, 24: 440, 25: 432, 26: 425, 27: 418, 28: 422, 29: 428,
-    30: 435, 31: 425
-  },
-  1: { // January 2027 (Future 2 - Peak cold wave & severe inversion, 390-442)
-    1: 420, 2: 425, 3: 430, 4: 438, 5: 442, 6: 435, 7: 426, 8: 418,
-    9: 412, 10: 408, 11: 415, 12: 422, 13: 428, 14: 432, 15: 425,
-    16: 418, 17: 410, 18: 405, 19: 402, 20: 408, 21: 415, 22: 420,
-    23: 416, 24: 408, 25: 402, 26: 395, 27: 390, 28: 398, 29: 405,
-    30: 410, 31: 402
-  },
-  2: { // February 2027 (Future 3 - Late winter gradual recovery, 240-395)
-    1: 395, 2: 388, 3: 380, 4: 372, 5: 365, 6: 355, 7: 345, 8: 338,
-    9: 330, 10: 322, 11: 315, 12: 308, 13: 300, 14: 292, 15: 285,
-    16: 278, 17: 270, 18: 265, 19: 258, 20: 252, 21: 248, 22: 242,
-    23: 240, 24: 245, 25: 250, 26: 255, 27: 260, 28: 252
-  }
-};
-
-async function renderCurrentCalendar() {
-  const activeCity = findCity(currentCityId);
-  const targetMonths = calendarShowAll7
-    ? CALENDAR_7_MONTHS
-    : CALENDAR_7_MONTHS.slice(calendarWindowStart, calendarWindowStart + 3);
-
-  // Sync calendarMonths array for other functions
-  calendarMonths = targetMonths.map(m => m.month);
-
-  try {
-    const monthNums = targetMonths.map(m => m.month).join(",");
-    const res = await fetch(`/api/calendar/${activeCity.id}?year=2026&months=${monthNums}`);
-    if (res.ok) {
-      const calData = await res.json();
-      if (calData && calData.months && calData.months.length) {
-        buildCalendarHtml(calData.months);
-        return;
-      }
-    }
-  } catch (e) {
-    // Client fallback
-  }
-
-  const clientMonths = generateClientCalendar(activeCity.id, targetMonths);
-  buildCalendarHtml(clientMonths);
-}
-
-function renderCalendar(cityId, year, months) {
-  renderCurrentCalendar();
-}
-
-function buildCalendarHtml(monthsData) {
-  const container = document.getElementById("calendarMonthsContainer");
-  if (!container) return;
-
-  const weekdays = ["Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."];
-  let html = "";
-
-  monthsData.forEach(m => {
-    const isCur = m.is_current ? " border-2 border-danger shadow-sm" : "";
-    const badgeClass = m.is_current ? "bg-danger text-white" : "bg-light text-secondary border";
-    const badgeHtml = m.badge
-      ? `<span class="badge ${badgeClass} ms-2" style="font-size: 0.68rem; vertical-align: middle;">${m.badge}</span>`
-      : "";
-
-    html += `
-      <div class="col-lg-4 col-md-6 month-calendar-block${isCur}">
-        <div class="month-title-header text-center d-flex align-items-center justify-content-center">
-          <span>${m.month_name}</span> ${badgeHtml}
-        </div>
-        <div class="calendar-days-grid mb-1">
-          ${weekdays.map(w => `<div class="calendar-weekday-col">${w}</div>`).join('')}
-        </div>
-        <div class="calendar-days-grid">
-    `;
-
-    m.days.forEach(d => {
-      if (!d) {
-        html += `<div style="min-height: 48px;"></div>`;
-      } else {
-        const textColor = d.color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
-        html += `
-          <div class="cal-day-cell" title="${d.date_label}: AQI ${d.aqi} (${d.category})">
-            <div class="cal-cell-date">${d.date_label}</div>
-            <div class="cal-cell-aqi" style="background-color: ${d.color}; color: ${textColor}; font-weight: 700;">
-              ${d.aqi}
-            </div>
-          </div>
-        `;
-      }
-    });
-
-    html += `
-        </div>
-      </div>
-    `;
-  });
-
-  container.innerHTML = html;
-  updateCalendarNavControls();
-}
-
-function generateClientCalendar(cityId, targetMonths) {
-  const city = findCity(cityId);
-  const isDelhi = (city.id === "delhi");
-  const ratio = isDelhi ? 1.0 : (city.aqi / 406.0);
-
-  const results = [];
-  targetMonths.forEach(mConf => {
-    const m = mConf.month;
-    const y = mConf.year;
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const firstDayIndex = new Date(y, m - 1, 1).getDay(); // 0 = Sun, 6 = Sat
-    const daysData = [];
-
-    for (let i = 0; i < firstDayIndex; i++) daysData.push(null);
-
-    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-      let aqiVal;
-      if (DELHI_CALENDAR_ALL_7[m] && DELHI_CALENDAR_ALL_7[m][dayNum] !== undefined) {
-        const raw = DELHI_CALENDAR_ALL_7[m][dayNum];
-        aqiVal = isDelhi ? raw : Math.max(15, Math.round(raw * ratio));
-      } else {
-        aqiVal = Math.max(15, Math.round(city.aqi * 0.95));
-      }
-
-      daysData.push({
-        day: dayNum,
-        date_label: `${dayNum} ${mConf.short}`,
-        aqi: aqiVal,
-        category: getAqiCategoryName(aqiVal),
-        color: getAqiColor(aqiVal)
-      });
-    }
-
-    results.push({
-      month: m,
-      month_name: `${mConf.name} ${y}`,
-      badge: mConf.badge,
-      is_current: !!mConf.isCurrent,
-      days: daysData
-    });
-  });
-
-  return results;
-}
-
-function updateCalendarNavControls() {
-  const prevBtn = document.getElementById("calPrevBtn");
-  const nextBtn = document.getElementById("calNextBtn");
-  const toggleBtn = document.getElementById("btnToggleAllMonths");
-
-  if (toggleBtn) {
-    toggleBtn.innerHTML = calendarShowAll7
-      ? '<i class="fa-solid fa-table-cells me-1"></i> 3-Month View'
-      : '<i class="fa-solid fa-calendar-days me-1"></i> Show All 7 Months';
-    toggleBtn.className = calendarShowAll7
-      ? "btn btn-sm btn-primary fw-bold px-3 rounded-pill"
-      : "btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill";
-  }
-
-  if (prevBtn) {
-    const disabled = calendarShowAll7 || calendarWindowStart <= 0;
-    prevBtn.disabled = disabled;
-    prevBtn.style.opacity = disabled ? "0.35" : "1.0";
-    prevBtn.style.cursor = disabled ? "not-allowed" : "pointer";
-  }
-
-  if (nextBtn) {
-    const disabled = calendarShowAll7 || calendarWindowStart >= (CALENDAR_7_MONTHS.length - 3);
-    nextBtn.disabled = disabled;
-    nextBtn.style.opacity = disabled ? "0.35" : "1.0";
-    nextBtn.style.cursor = disabled ? "not-allowed" : "pointer";
-  }
-
-  renderMonthFilterPills();
-}
-
-function renderMonthFilterPills() {
-  const container = document.getElementById("calMonthPillsContainer");
-  if (!container) return;
-
-  let html = `<span class="small text-muted fw-bold me-1">Jump to:</span>`;
-  CALENDAR_7_MONTHS.forEach((m, idx) => {
-    const inActiveWindow = !calendarShowAll7 && idx >= calendarWindowStart && idx < calendarWindowStart + 3;
-    const isCurrent = !!m.isCurrent;
-    let pillClass = "btn btn-sm py-0 px-2 fw-semibold";
-    if (calendarShowAll7) {
-      pillClass += " btn-light border text-secondary";
-    } else if (inActiveWindow) {
-      pillClass += isCurrent ? " btn-danger text-white shadow-sm" : " btn-primary text-white shadow-sm";
-    } else {
-      pillClass += isCurrent ? " btn-outline-danger" : " btn-light border text-secondary";
-    }
-    html += `
-      <button class="${pillClass}" style="font-size: 0.72rem; border-radius: 14px;" onclick="window.jumpToCalendarMonth(${idx})" title="View ${m.label}">
-        ${m.short} ${isCurrent ? '•' : ''}
-      </button>
-    `;
-  });
-  container.innerHTML = html;
-}
-
-window.prevCalendarMonths = function() {
-  if (calendarShowAll7) {
-    calendarShowAll7 = false;
-  }
-  if (calendarWindowStart > 0) {
-    calendarWindowStart--;
-    renderCurrentCalendar();
-  }
-};
-
-window.nextCalendarMonths = function() {
-  if (calendarShowAll7) {
-    calendarShowAll7 = false;
-  }
-  if (calendarWindowStart < CALENDAR_7_MONTHS.length - 3) {
-    calendarWindowStart++;
-    renderCurrentCalendar();
-  }
-};
-
-window.toggleAllCalendarMonths = function() {
-  calendarShowAll7 = !calendarShowAll7;
-  renderCurrentCalendar();
-};
-
-window.jumpToCalendarMonth = function(index) {
-  calendarShowAll7 = false;
-  calendarWindowStart = Math.max(0, Math.min(CALENDAR_7_MONTHS.length - 3, index - 1));
-  renderCurrentCalendar();
-};
-
+// Calendar removed per user request
+function renderCalendar() {}
 
 // Render Clickable Chips for ALL 28 States & 8 UTs
 function renderAllStatesChips() {
@@ -1615,14 +1304,13 @@ window.loadCalcPreset = function(preset) {
 
 // Save API Keys & Map Settings
 window.saveApiKeys = function() {
-  const iqairKey = document.getElementById("inputIqairKey").value.trim();
-  const owKey = document.getElementById("inputOpenweatherKey").value.trim();
-  const mapKey = document.getElementById("inputMapKey").value.trim() || "demo";
+  const elDataGov = document.getElementById("inputDataGovKey");
+  const dataGovKey = elDataGov ? elDataGov.value.trim() : "";
+  const mapKey = (document.getElementById("inputMapKey") ? document.getElementById("inputMapKey").value.trim() : "") || "cec181c94519415685891484989a877e";
   const googleKey = (document.getElementById("inputGoogleMapsKey") ? document.getElementById("inputGoogleMapsKey").value.trim() : "");
-  const overlayEnabled = document.getElementById("toggleAqiTileOverlay").checked;
+  const overlayEnabled = document.getElementById("toggleAqiTileOverlay") ? document.getElementById("toggleAqiTileOverlay").checked : false;
 
-  localStorage.setItem("airsense_iqair_key", iqairKey);
-  localStorage.setItem("airsense_openweather_key", owKey);
+  if (dataGovKey) localStorage.setItem("airsense_datagovin_key", dataGovKey);
   localStorage.setItem("airsense_map_key", mapKey);
   localStorage.setItem("airsense_google_maps_key", googleKey);
   localStorage.setItem("airsense_aqi_overlay_enabled", overlayEnabled ? "true" : "false");

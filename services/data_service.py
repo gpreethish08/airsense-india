@@ -20,7 +20,8 @@ from services.forecast import generate_7day_forecast
 # Optional API Keys from environment
 OPENWEATHER_API_KEY_ENV = os.getenv("OPENWEATHER_API_KEY", "")
 IQAIR_API_KEY_ENV = os.getenv("IQAIR_API_KEY", "")
-WAQI_TOKEN_ENV = os.getenv("WAQI_TOKEN", "")
+DATA_GOV_IN_API_KEY_ENV = os.getenv("DATA_GOV_IN_API_KEY", "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b")
+DATA_GOV_IN_RESOURCE_ID = "3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69"
 
 # 5-minute TTL cache for free Open-Meteo live telemetry
 _OPENMETEO_CITY_CACHE: Dict[str, Any] = {}
@@ -821,16 +822,16 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
             iq_aqi_override = iq_data.get("aqi_us")
             api_source = "IQAir AirVisual API"
 
-    # Primary free real-time fetch from WAQI CAAQMS Ground Station Network
+    # Primary free real-time fetch from official CPCB CAAQMS Network (data.gov.in)
     if api_source == "CAAQMS Baseline":
-        waqi_data = fetch_waqi_live_data(city["lat"], city["lon"])
-        if waqi_data:
-            pollutants = waqi_data["pollutants"]
-            weather_info = waqi_data["weather"]
-            city["station"] = waqi_data.get("station_name", city["station"])
-            api_source = waqi_data["source"]
+        cpcb_data = fetch_datagovin_cpcb_live_data(city["name"])
+        if cpcb_data:
+            pollutants = cpcb_data["pollutants"]
+            if cpcb_data.get("station_name"):
+                city["station"] = cpcb_data["station_name"]
+            api_source = cpcb_data["source"]
 
-    # Fallback to Open-Meteo if WAQI ground sensor is unreachable
+    # Fallback to Open-Meteo if government sensor is unreachable
     if api_source == "CAAQMS Baseline":
         om_data = fetch_openmeteo_live_data(
             city["lat"], city["lon"], fallback_nh3=city["pollutants"].get("nh3", 18.0)
@@ -1151,55 +1152,57 @@ def fetch_iqair_data(city: str, state: str, lat: float, lon: float, api_key: Opt
     return None
 
 
-def fetch_waqi_live_data(lat: float, lon: float, token: str = "") -> Optional[Dict[str, Any]]:
+def fetch_datagovin_cpcb_live_data(city_name: str, key: str = "") -> Optional[Dict[str, Any]]:
     """
-    Real-time telemetry from WAQI (World Air Quality Index) CAAQMS network.
-    Queries Anand Vihar CAAQMS Station (@2553) for Delhi, and geo-stations for other cities.
+    Real-time telemetry from official CPCB CAAQMS network via data.gov.in.
     """
     try:
-        t = token or WAQI_TOKEN_ENV
-        if not t:
+        k = key or DATA_GOV_IN_API_KEY_ENV
+        if not k:
             return None
-        is_delhi = (abs(lat - 28.6139) < 0.05 and abs(lon - 77.2090) < 0.05)
-        url = f"https://api.waqi.info/feed/@2553/?token={t}" if is_delhi else f"https://api.waqi.info/feed/geo:{lat};{lon}/?token={t}"
-        res = requests.get(url, timeout=6)
+        clean_city = city_name.split()[0].replace(",", "")
+        url = f"https://api.data.gov.in/resource/{DATA_GOV_IN_RESOURCE_ID}?api-key={k}&format=json&limit=50&filters[city]={clean_city}"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        res = requests.get(url, headers=headers, timeout=8)
         if res.status_code == 200:
             data = res.json()
-            if data.get("status") == "ok":
-                d = data.get("data", {})
-                iaqi = d.get("iaqi", {})
-                p25 = iaqi.get("pm25", {}).get("v")
-                p10 = iaqi.get("pm10", {}).get("v")
-                no2 = iaqi.get("no2", {}).get("v")
-                so2 = iaqi.get("so2", {}).get("v")
-                co = iaqi.get("co", {}).get("v")
-                o3 = iaqi.get("o3", {}).get("v")
-                
-                pollutants = {
-                    "pm25": float(p25) if p25 is not None else (263.0 if is_delhi else 65.0),
-                    "pm10": float(p10) if p10 is not None else (200.0 if is_delhi else 110.0),
-                    "no2": float(no2) if no2 is not None else (6.3 if is_delhi else 28.0),
-                    "so2": float(so2) if so2 is not None else (8.8 if is_delhi else 12.0),
-                    "co": round(float(co) / 10.0, 2) if co is not None else (1.04 if is_delhi else 1.2),
-                    "o3": float(o3) if o3 is not None else (4.6 if is_delhi else 24.0),
-                    "nh3": 22.0
-                }
-                weather = {
-                    "temp": round(float(iaqi.get("t", {}).get("v", 28.5 if is_delhi else 28.0)), 1),
-                    "humidity": int(round(float(iaqi.get("h", {}).get("v", 58 if is_delhi else 55)))),
-                    "wind_speed": round(float(iaqi.get("w", {}).get("v", 1.0 if is_delhi else 2.9)) * 3.6, 1),
-                    "description": "Partly Cloudy",
-                    "uv_index": 1.5
-                }
-                return {
-                    "source": "WAQI CAAQMS Ground Station Telemetry",
-                    "live_us_aqi": int(d.get("aqi", 263 if is_delhi else 150)),
-                    "pollutants": pollutants,
-                    "weather": weather,
-                    "station_name": d.get("city", {}).get("name", "Anand Vihar, Delhi, Delhi, India" if is_delhi else "CAAQMS Station")
-                }
+            records = data.get("records", [])
+            if not records:
+                return None
+            p_map = {}
+            station_name = None
+            is_delhi = (clean_city.lower() == "delhi")
+            for r in records:
+                pid = r.get("pollutant_id", "").upper().replace(".", "").replace(" ", "")
+                val_str = r.get("avg_value")
+                if not station_name and r.get("station"):
+                    station_name = r.get("station")
+                if val_str:
+                    try:
+                        v = float(val_str)
+                        if pid not in p_map or v > p_map[pid]:
+                            p_map[pid] = v
+                    except ValueError:
+                        pass
+
+            raw_co = p_map.get("CO", 104.0 if is_delhi else 1.2)
+            co_val = round(raw_co / 100.0, 2) if raw_co > 10 else round(raw_co, 2)
+            pollutants = {
+                "pm25": p_map.get("PM25", 263.0 if is_delhi else 65.0),
+                "pm10": p_map.get("PM10", 200.0 if is_delhi else 110.0),
+                "no2": p_map.get("NO2", 6.3 if is_delhi else 28.0),
+                "so2": p_map.get("SO2", 8.8 if is_delhi else 12.0),
+                "co": co_val,
+                "o3": p_map.get("OZONE", 4.6 if is_delhi else 24.0),
+                "nh3": p_map.get("NH3", 22.0 if is_delhi else 10.0)
+            }
+            return {
+                "source": "CPCB CAAQMS Ground Telemetry (data.gov.in)",
+                "pollutants": pollutants,
+                "station_name": station_name or ("Anand Vihar CAAQMS Station, Delhi" if is_delhi else f"{clean_city} CAAQMS Station")
+            }
     except Exception as e:
-        print(f"WAQI live fetch error: {e}")
+        print(f"data.gov.in CPCB fetch error: {e}")
     return None
 
 
