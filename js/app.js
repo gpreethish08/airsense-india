@@ -874,25 +874,25 @@ function renderMajorPollutants(data) {
 // ============================================================================
 
 const DELHI_CALENDAR_ALL_7 = {
-  8: { // August 2026 (Past 3 - Monsoon cleaner period)
-    1: 127, 2: 118, 3: 104, 4: 95, 5: 126, 6: 110, 7: 114, 8: 120,
-    9: 128, 10: 135, 11: 141, 12: 147, 13: 127, 14: 123, 15: 132,
-    16: 112, 17: 106, 18: 94, 19: 104, 20: 115, 21: 104, 22: 98,
-    23: 110, 24: 125, 25: 137, 26: 150, 27: 138, 28: 109, 29: 95,
-    30: 102, 31: 98
+  8: { // August 2026 (Past 3 Months - Elevated, consistent with Delhi AQI)
+    1: 335, 2: 328, 3: 315, 4: 310, 5: 332, 6: 325, 7: 340, 8: 345,
+    9: 352, 10: 358, 11: 365, 12: 370, 13: 355, 14: 348, 15: 360,
+    16: 342, 17: 336, 18: 325, 19: 335, 20: 348, 21: 340, 22: 332,
+    23: 345, 24: 355, 25: 365, 26: 375, 27: 368, 28: 350, 29: 338,
+    30: 345, 31: 340
   },
-  9: { // September 2026 (Past 2 - Late monsoon transitional)
-    1: 94, 2: 108, 3: 102, 4: 100, 5: 107, 6: 99, 7: 140, 8: 108,
-    9: 103, 10: 106, 11: 130, 12: 112, 13: 116, 14: 125, 15: 145,
-    16: 121, 17: 132, 18: 107, 19: 151, 20: 166, 21: 162, 22: 164,
-    23: 166, 24: 146, 25: 82, 26: 79, 27: 69, 28: 97, 29: 131, 30: 144
+  9: { // September 2026 (Past 2 Months - Elevated, close to winter levels)
+    1: 325, 2: 338, 3: 345, 4: 330, 5: 342, 6: 350, 7: 362, 8: 355,
+    9: 348, 10: 360, 11: 372, 12: 365, 13: 358, 14: 370, 15: 382,
+    16: 375, 17: 388, 18: 380, 19: 392, 20: 398, 21: 390, 22: 385,
+    23: 392, 24: 380, 25: 365, 26: 358, 27: 350, 28: 362, 29: 375, 30: 385
   },
-  10: { // October 2026 (Past 1 - Stubble burning & inversion rise into plus 400)
-    1: 146, 2: 152, 3: 158, 4: 164, 5: 172, 6: 185, 7: 198, 8: 215,
-    9: 230, 10: 248, 11: 265, 12: 282, 13: 310, 14: 335, 15: 360,
-    16: 402, 17: 408, 18: 415, 19: 422, 20: 428, 21: 435, 22: 442,
-    23: 438, 24: 430, 25: 425, 26: 432, 27: 440, 28: 446, 29: 438,
-    30: 426, 31: 418
+  10: { // October 2026 (Past 1 Month - Stubble burning & severe pollution, plus 400)
+    1: 375, 2: 382, 3: 390, 4: 395, 5: 402, 6: 408, 7: 415, 8: 422,
+    9: 418, 10: 425, 11: 432, 12: 438, 13: 442, 14: 435, 15: 428,
+    16: 434, 17: 440, 18: 446, 19: 438, 20: 445, 21: 452, 22: 448,
+    23: 440, 24: 435, 25: 428, 26: 436, 27: 442, 28: 448, 29: 440,
+    30: 432, 31: 425
   },
   11: { // November 2026 (Present Month - Peak Smog Emergency, all days plus 400, Day 15 is 406)
     1: 408, 2: 415, 3: 422, 4: 435, 5: 442, 6: 450, 7: 458, 8: 445,
@@ -928,14 +928,15 @@ function generateClientCalendar(cityId, targetMonths) {
   const baseAqi = Number(city.aqi) || 120;
 
   // Seasonal multipliers for all Indian states relative to current November baseline (= 1.0)
+  // Past 3 months kept close and consistent with present and future AQI levels
   const monthSeasonMultipliers = {
-    8: 0.60,  // August: Monsoon rain wash (cleanest period)
-    9: 0.70,  // September: Late monsoon transitional
-    10: 0.88, // October: Post-monsoon transition
-    11: 1.00, // November: Present month (calibrated directly to current city live AQI)
-    12: 1.08, // December: Peak winter inversion
-    1: 1.05,  // January: Mid-winter cold wave
-    2: 0.82   // February: Late winter / spring warmup
+    8: 0.94,  // August: Past 3 Months (close to present)
+    9: 0.96,  // September: Past 2 Months
+    10: 0.98, // October: Past 1 Month
+    11: 1.00, // November: Present Month (calibrated directly to current city live AQI)
+    12: 1.04, // December: Peak winter inversion
+    1: 1.02,  // January: Mid-winter cold wave
+    2: 0.97   // February: Late winter / spring warmup
   };
 
   const results = [];
@@ -961,7 +962,7 @@ function generateClientCalendar(cityId, targetMonths) {
         // Any other state or place across India:
         const seasonFactor = monthSeasonMultipliers[m] || 1.0;
         const citySeed = (city.name || "city").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-        const dailyJitter = Math.sin((dayNum * 13 + m * 31 + citySeed) % 100) * 0.12; // ±12% natural daily variation
+        const dailyJitter = Math.sin((dayNum * 13 + m * 31 + citySeed) % 100) * 0.08; // ±8% natural daily variation
         const raw = Math.round(baseAqi * seasonFactor * (1 + dailyJitter));
         aqiVal = Math.max(15, Math.min(500, raw));
       }
