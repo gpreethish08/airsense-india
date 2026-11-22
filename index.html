@@ -25,6 +25,70 @@
 </head>
 <body>
 
+  <!-- Mandatory Full-Screen Login Gate Overlay (Matches Uploaded Design) -->
+  <div id="authGateScreen" class="auth-gate-overlay">
+    <div class="auth-gate-card">
+      <h2 id="authGateTitle" class="auth-card-title">Login</h2>
+      
+      <form id="authGateForm" onsubmit="event.preventDefault(); window.submitAuthGate();">
+        <!-- Sign Up extra field (Name) -->
+        <div id="authNameFieldGroup" class="auth-input-group d-none">
+          <input type="text" id="authGateName" class="auth-input" placeholder="Full Name" autocomplete="name">
+        </div>
+
+        <!-- Email Field -->
+        <div class="auth-input-group">
+          <input type="email" id="authGateEmail" class="auth-input" placeholder="Email" required autocomplete="email">
+        </div>
+
+        <!-- Password Field -->
+        <div class="auth-input-group">
+          <input type="password" id="authGatePassword" class="auth-input" placeholder="Password" required autocomplete="current-password">
+        </div>
+
+        <!-- Error Alert -->
+        <div id="authGateError" class="auth-error-alert d-none"></div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="btnAuthGateSubmit" class="auth-submit-btn">Login</button>
+      </form>
+
+      <!-- Bottom Links -->
+      <div class="auth-bottom-links">
+        <div class="mb-2">
+          <span class="text-secondary small">Forgot </span>
+          <a href="#" class="auth-link-text small" onclick="window.handleForgotPass(event)">Password?</a>
+        </div>
+        <div>
+          <span class="text-secondary small" id="authTogglePromptText">Don't have an account? </span>
+          <a href="#" class="auth-link-text small fw-bold" id="authToggleLink" onclick="window.toggleAuthMode(event)">Sign up</a>
+        </div>
+      </div>
+
+      <!-- Divider & Google Sign-In Option -->
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <button type="button" class="btn-google-auth" onclick="window.triggerGoogleAuthGate()">
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <!-- Quick Demo Access -->
+      <div class="text-center mt-3">
+        <button type="button" class="btn btn-link p-0 text-muted small text-decoration-none" style="font-size: 0.76rem;" onclick="window.loginAsQuickDemo()">
+          <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Quick Demo Access
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Top Navbar -->
   <nav class="navbar navbar-expand-lg navbar-custom py-2">
     <div class="container-fluid px-4">
@@ -123,16 +187,11 @@
               <i class="fa-solid fa-file-pdf me-1"></i> Print PDF
             </button>
           </li>
-          <!-- Admin Console Link -->
-          <li class="nav-item">
-            <a class="nav-link-custom text-dark fw-bold" href="admin.html" onclick="window.openAdminConsole(); return false;" title="Admin Web Console - View Users Who Logged In">
-              <i class="fa-solid fa-shield-halved text-secondary me-1"></i> Admin
-            </a>
-          </li>
+          
           <!-- Google Sign-In / User Profile Container -->
           <li class="nav-item ms-lg-1" id="navAuthContainer">
             <!-- Logged Out Button -->
-            <button id="btnNavLogin" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="window.openLoginModal()">
+            <button id="btnNavLogin" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="window.showAuthGate()">
               <i class="fa-brands fa-google text-white"></i> <span>Sign In</span>
             </button>
 
@@ -148,12 +207,7 @@
                   <div class="text-muted small text-truncate" id="navUserEmail" style="font-size: 0.75rem;">user@gmail.com</div>
                 </li>
                 <li><hr class="dropdown-divider my-1"></li>
-                <li>
-                  <a class="dropdown-item rounded small py-1" href="admin.html" onclick="window.openAdminConsole(); return false;">
-                    <i class="fa-solid fa-shield-halved text-primary me-2"></i> Admin Web Console
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider my-1"></li>
+                
                 <li>
                   <button class="dropdown-item rounded small py-1 text-danger fw-semibold" onclick="window.handleLogout()">
                     <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Sign Out

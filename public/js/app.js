@@ -2752,21 +2752,184 @@ function getCategoryGradient(aqi) {
 
 const DEFAULT_ADMIN_PIN = "1234";
 
-// Check if a user is currently logged in
+// Check if a user is currently logged in (Runs on DOMContentLoaded)
 function checkAuthStatus() {
   try {
     const rawUser = localStorage.getItem("airsense_current_user");
     if (rawUser) {
       const user = JSON.parse(rawUser);
+      hideAuthGate();
       updateNavbarAuthState(user);
     } else {
+      showAuthGate();
       updateNavbarAuthState(null);
     }
   } catch (e) {
+    showAuthGate();
     updateNavbarAuthState(null);
   }
 }
 
+// Show Mandatory Login Gate Overlay
+window.showAuthGate = function() {
+  const gate = document.getElementById("authGateScreen");
+  if (gate) {
+    gate.classList.remove("auth-gate-hidden");
+    document.body.style.overflow = "hidden";
+    const emailInput = document.getElementById("authGateEmail");
+    if (emailInput) setTimeout(() => emailInput.focus(), 150);
+  }
+};
+
+// Hide Login Gate Overlay
+window.hideAuthGate = function() {
+  const gate = document.getElementById("authGateScreen");
+  if (gate) {
+    gate.classList.add("auth-gate-hidden");
+    document.body.style.overflow = "";
+  }
+};
+
+// Toggle between Login and Sign Up Mode
+let isSignUpMode = false;
+window.toggleAuthMode = function(e) {
+  if (e) e.preventDefault();
+  isSignUpMode = !isSignUpMode;
+  
+  const titleEl = document.getElementById("authGateTitle");
+  const nameGroup = document.getElementById("authNameFieldGroup");
+  const submitBtn = document.getElementById("btnAuthGateSubmit");
+  const promptText = document.getElementById("authTogglePromptText");
+  const toggleLink = document.getElementById("authToggleLink");
+  const errorEl = document.getElementById("authGateError");
+
+  if (errorEl) errorEl.classList.add("d-none");
+
+  if (isSignUpMode) {
+    if (titleEl) titleEl.textContent = "Sign Up";
+    if (nameGroup) nameGroup.classList.remove("d-none");
+    if (submitBtn) submitBtn.textContent = "Sign Up";
+    if (promptText) promptText.textContent = "Already have an account? ";
+    if (toggleLink) toggleLink.textContent = "Log in";
+    const nameInput = document.getElementById("authGateName");
+    if (nameInput) setTimeout(() => nameInput.focus(), 100);
+  } else {
+    if (titleEl) titleEl.textContent = "Login";
+    if (nameGroup) nameGroup.classList.add("d-none");
+    if (submitBtn) submitBtn.textContent = "Login";
+    if (promptText) promptText.textContent = "Don't have an account? ";
+    if (toggleLink) toggleLink.textContent = "Sign up";
+    const emailInput = document.getElementById("authGateEmail");
+    if (emailInput) setTimeout(() => emailInput.focus(), 100);
+  }
+};
+
+// Submit Mandatory Login / Sign Up Gate
+window.submitAuthGate = function() {
+  const emailInput = document.getElementById("authGateEmail");
+  const passInput = document.getElementById("authGatePassword");
+  const nameInput = document.getElementById("authGateName");
+  const errorEl = document.getElementById("authGateError");
+
+  const email = emailInput ? emailInput.value.trim() : "";
+  const password = passInput ? passInput.value : "";
+  const customName = nameInput ? nameInput.value.trim() : "";
+
+  if (!email || !email.includes("@")) {
+    showAuthError("Please enter a valid email address.");
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  if (!password || password.length < 4) {
+    showAuthError("Password must be at least 4 characters long.");
+    if (passInput) passInput.focus();
+    return;
+  }
+
+  let displayName = customName;
+  if (!displayName) {
+    const rawName = email.split("@")[0].replace(/[._-]/g, " ");
+    displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+  }
+
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentCity = (typeof currentCityId !== "undefined") ? findCity(currentCityId).name : "Delhi NCR";
+
+  const userPayload = {
+    id: "usr_" + Math.random().toString(36).substring(2, 9),
+    name: displayName,
+    email: email,
+    photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0284C7&color=fff`,
+    provider: isSignUpMode ? "Registered Account" : "User Login",
+    firstSeen: timeStr,
+    lastActive: timeStr,
+    visits: 1,
+    lastCity: currentCity,
+    status: "Active"
+  };
+
+  // Record into persistent database
+  window.recordUserLogin(userPayload);
+
+  // Set active session
+  localStorage.setItem("airsense_current_user", JSON.stringify(userPayload));
+
+  // Unlock UI
+  hideAuthGate();
+  updateNavbarAuthState(userPayload);
+
+  // Clear inputs & errors
+  if (emailInput) emailInput.value = "";
+  if (passInput) passInput.value = "";
+  if (nameInput) nameInput.value = "";
+  if (errorEl) errorEl.classList.add("d-none");
+};
+
+function showAuthError(msg) {
+  const errorEl = document.getElementById("authGateError");
+  if (errorEl) {
+    errorEl.textContent = msg;
+    errorEl.classList.remove("d-none");
+  }
+}
+
+// Google Sign-In Gate Trigger
+window.triggerGoogleAuthGate = function() {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    window.google.accounts.id.prompt();
+    return;
+  }
+
+  const email = prompt("Enter your Google Email (e.g. yourname@gmail.com):", "user@gmail.com");
+  if (!email || !email.includes("@")) {
+    if (email !== null) alert("Please enter a valid Google email address.");
+    return;
+  }
+  const defaultName = email.split("@")[0].replace(/[._-]/g, " ");
+  const name = prompt("Enter your Full Name:", defaultName.charAt(0).toUpperCase() + defaultName.slice(1)) || "Google User";
+
+  window.loginAsQuickUser(name, email);
+};
+
+// Demo Visitor Quick Access
+window.loginAsQuickDemo = function() {
+  window.loginAsQuickUser("Demo Visitor", "demo.visitor@airsense.in");
+};
+
+// Forgot Password Handler
+window.handleForgotPass = function(e) {
+  if (e) e.preventDefault();
+  const email = prompt("Enter your registered email address to receive password reset instructions:");
+  if (email && email.includes("@")) {
+    alert(`Password reset instructions have been dispatched to ${email}. Check your inbox.`);
+  } else if (email !== null) {
+    alert("Please provide a valid email address.");
+  }
+};
+
+// Update Navbar when auth state changes
 function updateNavbarAuthState(user) {
   const btnLogin = document.getElementById("btnNavLogin");
   const userDropdown = document.getElementById("navUserDropdown");
@@ -2792,31 +2955,22 @@ function updateNavbarAuthState(user) {
   }
 }
 
-// Open Sign-In Modal
-window.openLoginModal = function() {
-  const modalEl = document.getElementById("loginModal");
-  if (modalEl && window.bootstrap) {
-    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    modal.show();
+// Sign Out Handler
+window.handleLogout = function() {
+  if (confirm("Are you sure you want to sign out?")) {
+    localStorage.removeItem("airsense_current_user");
+    updateNavbarAuthState(null);
+    showAuthGate();
   }
 };
 
-// Trigger Google Sign-In (Official popup or fallback to prompt)
+// Open Sign-In Modal (redirects to auth gate)
+window.openLoginModal = function() {
+  window.showAuthGate();
+};
+
 window.triggerGoogleAuth = function() {
-  if (window.google && window.google.accounts && window.google.accounts.id) {
-    window.google.accounts.id.prompt();
-    return;
-  }
-  
-  const email = prompt("Enter your Google Email (e.g., yourname@gmail.com):");
-  if (!email || !email.includes("@")) {
-    if (email !== null) alert("Please enter a valid Google email address.");
-    return;
-  }
-  const defaultName = email.split("@")[0].replace(".", " ");
-  const name = prompt("Enter your Name:", defaultName.charAt(0).toUpperCase() + defaultName.slice(1)) || "Google User";
-  
-  window.loginAsQuickUser(name, email);
+  window.triggerGoogleAuthGate();
 };
 
 // Quick Sign-In Handler
@@ -2830,7 +2984,7 @@ window.loginAsQuickUser = function(name, email, photoUrl) {
     name: name,
     email: email,
     photoUrl: photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284C7&color=fff`,
-    provider: "Google OAuth",
+    provider: email.includes("demo") ? "Demo Visitor" : "Google OAuth",
     firstSeen: timeStr,
     lastActive: timeStr,
     visits: 1,
@@ -2838,21 +2992,13 @@ window.loginAsQuickUser = function(name, email, photoUrl) {
     status: "Active"
   };
 
-  // Record into persistent user database
+  // Record into persistent database
   window.recordUserLogin(userPayload);
 
-  // Set as active session
+  // Set active session
   localStorage.setItem("airsense_current_user", JSON.stringify(userPayload));
+  hideAuthGate();
   updateNavbarAuthState(userPayload);
-
-  // Close Login Modal
-  const modalEl = document.getElementById("loginModal");
-  if (modalEl && window.bootstrap) {
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    if (modal) modal.hide();
-  }
-
-  alert(`Welcome, ${name}! You have successfully signed in with Google.`);
 };
 
 window.loginAsCustomVisitor = function() {
@@ -2864,14 +3010,6 @@ window.loginAsCustomVisitor = function() {
     return;
   }
   window.loginAsQuickUser(name, email);
-};
-
-// Sign Out Handler
-window.handleLogout = function() {
-  if (confirm("Are you sure you want to sign out?")) {
-    localStorage.removeItem("airsense_current_user");
-    updateNavbarAuthState(null);
-  }
 };
 
 // Record User into Database (localStorage and backend API)
@@ -2906,6 +3044,13 @@ window.recordUserLogin = function(userData) {
     }).catch(() => {});
   } catch (err) {}
 };
+
+// Secret Shortcut for Admin: Press Ctrl + Alt + A to open Admin Web Console
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === "a") {
+    window.location.href = "admin.html";
+  }
+});
 
 // ============================================================================
 // In-App Admin Web Console Modal
