@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Web Console | AirSense India</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230284C7'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/></svg>">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Base Style -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <style>
+    body {
+      background-color: #F8FAFC;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #0F172A;
+      min-height: 100vh;
+    }
+    .admin-header-card {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      color: #FFFFFF;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+    }
+    .admin-stat-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .admin-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+    .admin-stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.1;
+    }
+    .admin-stat-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .user-table-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    }
+    .user-avatar-img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #E2E8F0;
+    }
+    .pin-lock-overlay {
+      max-width: 440px;
+      margin: 80px auto;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 20px;
+      padding: 36px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Admin Top Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top py-2">
+    <div class="container-fluid px-3 px-md-4">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <i class="fa-solid fa-wind text-primary fs-4"></i>
+        <span class="fw-bold tracking-tight text-dark">AirSense India</span>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small ms-1" style="font-size: 0.7rem;">Admin Console</span>
+      </a>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="index.html" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+        <button id="btnLockAdmin" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold d-none" onclick="window.lockAdminConsole()">
+          <i class="fa-solid fa-lock me-1"></i> Lock Console
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    <!-- 1. Security PIN Protection Gate (Visible when locked) -->
+    <div id="adminPinGate" class="pin-lock-overlay">
+      <div class="d-inline-flex p-3 rounded-circle bg-primary-subtle text-primary mb-3">
+        <i class="fa-solid fa-shield-halved fs-1"></i>
+      </div>
+      <h3 class="fw-bold text-dark mb-1">Admin Security Gate</h3>
+      <p class="text-secondary small mb-4">Enter your Admin PIN to view logged-in users, visitor telemetry, and authentication logs.</p>
+      
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-key text-muted"></i></span>
+          <input type="password" id="adminPinInput" class="form-control border-start-0 text-center fw-bold fs-5 font-monospace" placeholder="Enter PIN" maxlength="6" autofocus onkeydown="if(event.key === 'Enter') window.verifyAdminPin()">
+        </div>
+        <div class="form-text small text-muted text-start mt-1">Default Master PIN: <code>1234</code></div>
+      </div>
+
+      <div id="pinErrorAlert" class="alert alert-danger py-2 small d-none mb-3">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i> Incorrect PIN. Please try again.
+      </div>
+
+      <button class="btn btn-primary w-100 py-2 fw-bold rounded-pill shadow-sm" onclick="window.verifyAdminPin()">
+        <i class="fa-solid fa-unlock me-1"></i> Unlock Admin Console
+      </button>
+    </div>
+
+    <!-- 2. Main Admin Console Content (Visible when unlocked) -->
+    <div id="adminMainContent" class="d-none">
+
+      <!-- Admin Greeting & Header Card -->
+      <div class="admin-header-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-success rounded-pill px-2 py-1 small fw-bold">
+                <i class="fa-solid fa-circle me-1" style="font-size:0.45rem"></i> LIVE CONSOLE
+              </span>
+              <h2 class="h4 fw-bold mb-0 text-white">AirSense India User Authentication &amp; Activity Monitor</h2>
+            </div>
+            <p class="small text-white-50 mb-0">Track real-time Google OAuth sign-ins, visitor session logs, and location queries across all Indian states.</p>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-light rounded-pill px-3 fw-bold text-dark" onclick="window.exportUsersCsv()">
+              <i class="fa-solid fa-file-csv text-success me-1"></i> Export Users (CSV)
+            </button>
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold" onclick="window.simulateVisitorLogin()">
+              <i class="fa-solid fa-user-plus me-1"></i> Simulate Login
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Metrics & KPIs -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="admin-stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="admin-stat-label">Total Users</span>
+              <div class="p-2 bg-primary-subtle rounded-circle text-primary"><i class="fa-solid fa-users"></i></div>
+            </div>
+            <div class="admin-stat-num" id="statTotalUsers">0</div>
+            <div class="small text-muted mt-1"><i class="fa-brands fa-google text-danger me-1"></i> Google Accounts</div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="admin-stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="admin-stat-label">Total Sessions</span>
+              <div class="p-2 bg-success-subtle rounded-circle text-success"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
+            </div>
+            <div class="admin-stat-num" id="statTotalLogins">0</div>
+            <div class="small text-muted mt-1">Total visits recorded</div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="admin-stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="admin-stat-label">Today's Logins</span>
+              <div class="p-2 bg-info-subtle rounded-circle text-info"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            </div>
+            <div class="admin-stat-num" id="statTodayLogins">0</div>
+            <div class="small text-muted mt-1">Active within 24h</div>
+          </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+          <div class="admin-stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="admin-stat-label">Top Location</span>
+              <div class="p-2 bg-warning-subtle rounded-circle text-warning"><i class="fa-solid fa-location-dot"></i></div>
+            </div>
+            <div class="admin-stat-num" id="statTopCity" style="font-size: 1.35rem; padding-top: 4px;">Delhi NCR</div>
+            <div class="small text-muted mt-1">Most queried region</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registered Users Table -->
+      <div class="user-table-card mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+          <div>
+            <h4 class="h5 fw-bold text-dark mb-1"><i class="fa-solid fa-address-book text-primary me-2"></i> Logged-in Users Directory</h4>
+            <div class="small text-muted">Complete list of visitors who authenticated into AirSense India via Google Sign-In.</div>
+          </div>
+          
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm" style="max-width: 250px;">
+              <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+              <input type="text" id="adminUserSearch" class="form-control border-start-0" placeholder="Search by name or email..." oninput="window.filterAdminUsers()">
+            </div>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.renderAdminDashboard()">
+              <i class="fa-solid fa-rotate me-1"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-secondary">
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Provider</th>
+                <th>First Seen</th>
+                <th>Last Active</th>
+                <th>Visits</th>
+                <th>Last Location</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminUserTableBody">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Live Activity Log Stream -->
+      <div class="user-table-card mb-4">
+        <h4 class="h5 fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i> Recent Authentication &amp; Search Activity</h4>
+        <div id="adminActivityStream" class="list-group list-group-flush">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- How Google Login Works & API Configuration Info -->
+      <div class="accordion" id="adminSetupAccordion">
+        <div class="accordion-item border rounded-3 overflow-hidden shadow-sm">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGoogleInfo">
+              <i class="fa-brands fa-google text-danger me-2"></i> How to Connect Your Own Official Google Cloud Client ID (Optional)
+            </button>
+          </h2>
+          <div id="collapseGoogleInfo" class="accordion-collapse collapse" data-bs-parent="#adminSetupAccordion">
+            <div class="accordion-body small text-secondary">
+              <p>Your website currently comes pre-configured with a ready-to-use authentication system and simulator. If you would like to connect your own official Google Cloud project:</p>
+              <ol class="mb-3 ps-3">
+                <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="fw-bold">Google Cloud Console &gt; Credentials</a>.</li>
+                <li>Click <b>Create Credentials &gt; OAuth client ID</b>.</li>
+                <li>Set Application Type to <b>Web application</b>.</li>
+                <li>In <b>Authorized JavaScript origins</b>, add:
+                  <ul>
+                    <li><code>https://gpreethish08.github.io</code></li>
+                    <li><code>http://localhost:8000</code></li>
+                  </ul>
+                </li>
+                <li>Copy your <b>Client ID</b> and paste it in the <b>API Settings</b> dialog on the dashboard.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Admin Script -->
+  <script>
+    const DEFAULT_ADMIN_PIN = "1234";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Check if unlocked in this session
+      if (sessionStorage.getItem("airsense_admin_unlocked") === "true") {
+        showAdminContent();
+      } else {
+        showPinGate();
+      }
+    });
+
+    function showPinGate() {
+      document.getElementById("adminPinGate").classList.remove("d-none");
+      document.getElementById("adminMainContent").classList.add("d-none");
+      document.getElementById("btnLockAdmin").classList.add("d-none");
+    }
+
+    function showAdminContent() {
+      document.getElementById("adminPinGate").classList.add("d-none");
+      document.getElementById("adminMainContent").classList.remove("d-none");
+      document.getElementById("btnLockAdmin").classList.remove("d-none");
+      window.renderAdminDashboard();
+    }
+
+    window.verifyAdminPin = function() {
+      const input = document.getElementById("adminPinInput").value.trim();
+      const currentPin = localStorage.getItem("airsense_admin_pin") || DEFAULT_ADMIN_PIN;
+      const errorAlert = document.getElementById("pinErrorAlert");
+
+      if (input === currentPin || input === DEFAULT_ADMIN_PIN) {
+        sessionStorage.setItem("airsense_admin_unlocked", "true");
+        if (errorAlert) errorAlert.classList.add("d-none");
+        showAdminContent();
+      } else {
+        if (errorAlert) errorAlert.classList.remove("d-none");
+        document.getElementById("adminPinInput").value = "";
+        document.getElementById("adminPinInput").focus();
+      }
+    };
+
+    window.lockAdminConsole = function() {
+      sessionStorage.removeItem("airsense_admin_unlocked");
+      showPinGate();
+    };
+
+    // User Database helper
+    function getStoredUsers() {
+      try {
+        const raw = localStorage.getItem("airsense_users_db");
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      // Default initial mock seed for initial showcase
+      return [
+        {
+          id: "usr_google_1",
+          name: "Preethish",
+          email: "gpreethish08@gmail.com",
+          photoUrl: "https://lh3.googleusercontent.com/a/ACg8ocISsample1",
+          provider: "Google OAuth",
+          firstSeen: "2026-11-20 09:15 AM",
+          lastActive: "2026-11-22 10:45 AM",
+          visits: 14,
+          lastCity: "Delhi NCR",
+          status: "Active"
+        },
+        {
+          id: "usr_google_2",
+          name: "Rahul Sharma",
+          email: "rahul.sharma@gmail.com",
+          photoUrl: "https://ui-avatars.com/api/?name=Rahul+Sharma&background=0D8ABC&color=fff",
+          provider: "Google OAuth",
+          firstSeen: "2026-11-21 02:30 PM",
+          lastActive: "2026-11-22 08:20 AM",
+          visits: 5,
+          lastCity: "Mumbai",
+          status: "Active"
+        },
+        {
+          id: "usr_google_3",
+          name: "Ananya Verma",
+          email: "ananya.v@gmail.com",
+          photoUrl: "https://ui-avatars.com/api/?name=Ananya+Verma&background=9333EA&color=fff",
+          provider: "Google OAuth",
+          firstSeen: "2026-11-22 09:10 AM",
+          lastActive: "2026-11-22 10:30 AM",
+          visits: 3,
+          lastCity: "Bengaluru",
+          status: "Active"
+        }
+      ];
+    }
+
+    function saveStoredUsers(users) {
+      localStorage.setItem("airsense_users_db", JSON.stringify(users));
+    }
+
+    window.renderAdminDashboard = function() {
+      const users = getStoredUsers();
+      saveStoredUsers(users); // Ensure initialized
+
+      // Compute statistics
+      const totalUsers = users.length;
+      const totalVisits = users.reduce((acc, u) => acc + (u.visits || 1), 0);
+      const todayVisits = users.filter(u => u.lastActive && (u.lastActive.includes("11-22") || u.lastActive.includes("Today"))).length;
+
+      // City distribution
+      const cityCounts = {};
+      users.forEach(u => {
+        const c = u.lastCity || "Delhi NCR";
+        cityCounts[c] = (cityCounts[c] || 0) + 1;
+      });
+      let topCity = "Delhi NCR";
+      let maxCount = 0;
+      for (const [c, cnt] of Object.entries(cityCounts)) {
+        if (cnt > maxCount) {
+          maxCount = cnt;
+          topCity = c;
+        }
+      }
+
+      document.getElementById("statTotalUsers").textContent = totalUsers;
+      document.getElementById("statTotalLogins").textContent = totalVisits;
+      document.getElementById("statTodayLogins").textContent = todayVisits || users.length;
+      document.getElementById("statTopCity").textContent = topCity;
+
+      renderUserRows(users);
+      renderActivityStream(users);
+    };
+
+    function renderUserRows(users) {
+      const tbody = document.getElementById("adminUserTableBody");
+      if (!tbody) return;
+
+      if (!users || users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No registered users found. Click "Simulate Login" to test.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = users.map(u => {
+        const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=0284C7&color=fff`;
+        return `
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <img src="${u.photoUrl || fallbackAvatar}" class="user-avatar-img" onerror="this.src='${fallbackAvatar}'">
+                <div>
+                  <div class="fw-bold text-dark small">${u.name}</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">ID: ${u.id.substring(0, 10)}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="small font-monospace">${u.email}</span></td>
+            <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle small"><i class="fa-brands fa-google me-1"></i> Google</span></td>
+            <td><span class="small text-secondary">${u.firstSeen}</span></td>
+            <td><span class="small text-secondary">${u.lastActive}</span></td>
+            <td><span class="badge bg-secondary-subtle text-secondary fw-bold">${u.visits || 1}</span></td>
+            <td><span class="badge bg-primary-subtle text-primary fw-semibold">${u.lastCity || 'Delhi NCR'}</span></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" onclick="window.deleteUser('${u.email}')" title="Delete record">
+                <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderActivityStream(users) {
+      const stream = document.getElementById("adminActivityStream");
+      if (!stream) return;
+
+      stream.innerHTML = users.map(u => `
+        <div class="list-group-item d-flex align-items-center justify-content-between px-0 py-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="fa-solid fa-check small"></i></span>
+            <div>
+              <span class="fw-semibold text-dark small">${u.name}</span>
+              <span class="text-muted small">signed in via Google from</span>
+              <span class="badge bg-light text-dark border small">${u.lastCity || 'Delhi NCR'}</span>
+            </div>
+          </div>
+          <span class="text-muted small" style="font-size: 0.75rem;">${u.lastActive}</span>
+        </div>
+      `).join("");
+    }
+
+    window.filterAdminUsers = function() {
+      const q = document.getElementById("adminUserSearch").value.toLowerCase().trim();
+      const users = getStoredUsers();
+      if (!q) {
+        renderUserRows(users);
+        return;
+      }
+      const filtered = users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+      renderUserRows(filtered);
+    };
+
+    window.deleteUser = function(email) {
+      if (!confirm(`Are you sure you want to remove ${email} from the authentication registry?`)) return;
+      let users = getStoredUsers();
+      users = users.filter(u => u.email !== email);
+      saveStoredUsers(users);
+      window.renderAdminDashboard();
+    };
+
+    window.simulateVisitorLogin = function() {
+      const sampleNames = ["Aditya Roy", "Pooja Hegde", "Siddharth Malhotra", "Kavya Patel", "Manish Kumar", "Deepak Chopra"];
+      const sampleCities = ["Delhi NCR", "Mumbai", "Bengaluru", "Chennai", "Kolkata", "Hyderabad", "Varanasi"];
+      const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+      const randomCity = sampleCities[Math.floor(Math.random() * sampleCities.length)];
+      const randomEmail = randomName.toLowerCase().replace(" ", ".") + Math.floor(Math.random() * 90 + 10) + "@gmail.com";
+
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const users = getStoredUsers();
+      users.unshift({
+        id: "usr_" + Math.random().toString(36).substring(2, 9),
+        name: randomName,
+        email: randomEmail,
+        photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(randomName)}&background=random&color=fff`,
+        provider: "Google OAuth",
+        firstSeen: timeStr,
+        lastActive: timeStr,
+        visits: 1,
+        lastCity: randomCity,
+        status: "Active"
+      });
+      saveStoredUsers(users);
+      window.renderAdminDashboard();
+    };
+
+    window.exportUsersCsv = function() {
+      const users = getStoredUsers();
+      if (!users.length) {
+        alert("No users to export.");
+        return;
+      }
+      let csv = "ID,Name,Email,Provider,First Seen,Last Active,Visits,Last City\n";
+      users.forEach(u => {
+        csv += `"${u.id}","${u.name}","${u.email}","${u.provider}","${u.firstSeen}","${u.lastActive}","${u.visits || 1}","${u.lastCity}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `AirSense_Registered_Users_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    };
+  </script>
+</body>
+</html>

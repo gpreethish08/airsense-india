@@ -809,3 +809,18 @@ footer {
   animation: pulsePin 2s infinite;
   border: 3px solid #FFFFFF !important;
 }
+
+
+/* User Profile & Admin Console Styling */
+.user-avatar-nav {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #E2E8F0;
+}
+
+.admin-badge-pin {
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+}

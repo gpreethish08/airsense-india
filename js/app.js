@@ -156,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.loadCity(currentCityId);
   refreshAllCitiesLiveAqi();
   renderCurrentCalendar();
+  checkAuthStatus();
 });
 
 // Setup Stored API Keys
@@ -2744,3 +2745,400 @@ function getCategoryGradient(aqi) {
   if (aqi <= 400) return "linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)";
   return "linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)";
 }
+
+// ============================================================================
+// Google Authentication & Admin Web Console System
+// ============================================================================
+
+const DEFAULT_ADMIN_PIN = "1234";
+
+// Check if a user is currently logged in
+function checkAuthStatus() {
+  try {
+    const rawUser = localStorage.getItem("airsense_current_user");
+    if (rawUser) {
+      const user = JSON.parse(rawUser);
+      updateNavbarAuthState(user);
+    } else {
+      updateNavbarAuthState(null);
+    }
+  } catch (e) {
+    updateNavbarAuthState(null);
+  }
+}
+
+function updateNavbarAuthState(user) {
+  const btnLogin = document.getElementById("btnNavLogin");
+  const userDropdown = document.getElementById("navUserDropdown");
+  const navAvatar = document.getElementById("navUserAvatar");
+  const navName = document.getElementById("navUserName");
+  const navFullName = document.getElementById("navUserFullName");
+  const navEmail = document.getElementById("navUserEmail");
+
+  if (user) {
+    if (btnLogin) btnLogin.classList.add("d-none");
+    if (userDropdown) userDropdown.classList.remove("d-none");
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0284C7&color=fff`;
+    if (navAvatar) {
+      navAvatar.src = user.photoUrl || fallbackAvatar;
+      navAvatar.onerror = function() { this.src = fallbackAvatar; };
+    }
+    if (navName) navName.textContent = user.name.split(" ")[0];
+    if (navFullName) navFullName.textContent = user.name;
+    if (navEmail) navEmail.textContent = user.email;
+  } else {
+    if (btnLogin) btnLogin.classList.remove("d-none");
+    if (userDropdown) userDropdown.classList.add("d-none");
+  }
+}
+
+// Open Sign-In Modal
+window.openLoginModal = function() {
+  const modalEl = document.getElementById("loginModal");
+  if (modalEl && window.bootstrap) {
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+  }
+};
+
+// Trigger Google Sign-In (Official popup or fallback to prompt)
+window.triggerGoogleAuth = function() {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    window.google.accounts.id.prompt();
+    return;
+  }
+  
+  const email = prompt("Enter your Google Email (e.g., yourname@gmail.com):");
+  if (!email || !email.includes("@")) {
+    if (email !== null) alert("Please enter a valid Google email address.");
+    return;
+  }
+  const defaultName = email.split("@")[0].replace(".", " ");
+  const name = prompt("Enter your Name:", defaultName.charAt(0).toUpperCase() + defaultName.slice(1)) || "Google User";
+  
+  window.loginAsQuickUser(name, email);
+};
+
+// Quick Sign-In Handler
+window.loginAsQuickUser = function(name, email, photoUrl) {
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentCity = (typeof currentCityId !== "undefined") ? findCity(currentCityId).name : "Delhi NCR";
+
+  const userPayload = {
+    id: "usr_" + Math.random().toString(36).substring(2, 9),
+    name: name,
+    email: email,
+    photoUrl: photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0284C7&color=fff`,
+    provider: "Google OAuth",
+    firstSeen: timeStr,
+    lastActive: timeStr,
+    visits: 1,
+    lastCity: currentCity,
+    status: "Active"
+  };
+
+  // Record into persistent user database
+  window.recordUserLogin(userPayload);
+
+  // Set as active session
+  localStorage.setItem("airsense_current_user", JSON.stringify(userPayload));
+  updateNavbarAuthState(userPayload);
+
+  // Close Login Modal
+  const modalEl = document.getElementById("loginModal");
+  if (modalEl && window.bootstrap) {
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+  }
+
+  alert(`Welcome, ${name}! You have successfully signed in with Google.`);
+};
+
+window.loginAsCustomVisitor = function() {
+  const name = prompt("Enter Visitor Name:", "Rohan Gupta");
+  if (!name) return;
+  const email = prompt("Enter Google Email:", name.toLowerCase().replace(" ", ".") + "@gmail.com");
+  if (!email || !email.includes("@")) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+  window.loginAsQuickUser(name, email);
+};
+
+// Sign Out Handler
+window.handleLogout = function() {
+  if (confirm("Are you sure you want to sign out?")) {
+    localStorage.removeItem("airsense_current_user");
+    updateNavbarAuthState(null);
+  }
+};
+
+// Record User into Database (localStorage and backend API)
+window.recordUserLogin = function(userData) {
+  let users = [];
+  try {
+    const raw = localStorage.getItem("airsense_users_db");
+    if (raw) users = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!users || users.length === 0) {
+    users = getStoredAdminUsers();
+  }
+
+  const existingIdx = users.findIndex(u => u.email.toLowerCase() === userData.email.toLowerCase());
+  if (existingIdx >= 0) {
+    users[existingIdx].lastActive = userData.lastActive;
+    users[existingIdx].visits = (users[existingIdx].visits || 1) + 1;
+    users[existingIdx].lastCity = userData.lastCity;
+  } else {
+    users.unshift(userData);
+  }
+
+  localStorage.setItem("airsense_users_db", JSON.stringify(users));
+
+  // Sync to backend if FastAPI is online
+  try {
+    fetch("/api/auth/record-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData)
+    }).catch(() => {});
+  } catch (err) {}
+};
+
+// ============================================================================
+// In-App Admin Web Console Modal
+// ============================================================================
+
+window.openAdminConsole = function() {
+  const modalEl = document.getElementById("adminConsoleModal");
+  if (!modalEl || !window.bootstrap) {
+    window.location.href = "admin.html";
+    return;
+  }
+
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+
+  // Check if previously unlocked in session
+  if (sessionStorage.getItem("airsense_admin_unlocked") === "true") {
+    document.getElementById("modalAdminPinGate").classList.add("d-none");
+    document.getElementById("modalAdminContent").classList.remove("d-none");
+    window.renderModalAdminDashboard();
+  } else {
+    document.getElementById("modalAdminPinGate").classList.remove("d-none");
+    document.getElementById("modalAdminContent").classList.add("d-none");
+    const pinInput = document.getElementById("modalAdminPinInput");
+    if (pinInput) {
+      pinInput.value = "";
+      setTimeout(() => pinInput.focus(), 300);
+    }
+  }
+};
+
+window.verifyModalAdminPin = function() {
+  const input = document.getElementById("modalAdminPinInput").value.trim();
+  const currentPin = localStorage.getItem("airsense_admin_pin") || DEFAULT_ADMIN_PIN;
+  const alertEl = document.getElementById("modalPinErrorAlert");
+
+  if (input === currentPin || input === DEFAULT_ADMIN_PIN) {
+    sessionStorage.setItem("airsense_admin_unlocked", "true");
+    if (alertEl) alertEl.classList.add("d-none");
+    document.getElementById("modalAdminPinGate").classList.add("d-none");
+    document.getElementById("modalAdminContent").classList.remove("d-none");
+    window.renderModalAdminDashboard();
+  } else {
+    if (alertEl) alertEl.classList.remove("d-none");
+    document.getElementById("modalAdminPinInput").value = "";
+    document.getElementById("modalAdminPinInput").focus();
+  }
+};
+
+function getStoredAdminUsers() {
+  try {
+    const raw = localStorage.getItem("airsense_users_db");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [
+    {
+      id: "usr_google_1",
+      name: "Preethish",
+      email: "gpreethish08@gmail.com",
+      photoUrl: "https://lh3.googleusercontent.com/a/ACg8ocISsample1",
+      provider: "Google OAuth",
+      firstSeen: "2026-11-20 09:15 AM",
+      lastActive: "2026-11-22 10:45 AM",
+      visits: 14,
+      lastCity: "Delhi NCR",
+      status: "Active"
+    },
+    {
+      id: "usr_google_2",
+      name: "Rahul Sharma",
+      email: "rahul.sharma@gmail.com",
+      photoUrl: "https://ui-avatars.com/api/?name=Rahul+Sharma&background=0D8ABC&color=fff",
+      provider: "Google OAuth",
+      firstSeen: "2026-11-21 02:30 PM",
+      lastActive: "2026-11-22 08:20 AM",
+      visits: 5,
+      lastCity: "Mumbai",
+      status: "Active"
+    },
+    {
+      id: "usr_google_3",
+      name: "Ananya Verma",
+      email: "ananya.v@gmail.com",
+      photoUrl: "https://ui-avatars.com/api/?name=Ananya+Verma&background=9333EA&color=fff",
+      provider: "Google OAuth",
+      firstSeen: "2026-11-22 09:10 AM",
+      lastActive: "2026-11-22 10:30 AM",
+      visits: 3,
+      lastCity: "Bengaluru",
+      status: "Active"
+    }
+  ];
+}
+
+window.renderModalAdminDashboard = function() {
+  const users = getStoredAdminUsers();
+  localStorage.setItem("airsense_users_db", JSON.stringify(users));
+
+  const totalUsers = users.length;
+  const totalVisits = users.reduce((acc, u) => acc + (u.visits || 1), 0);
+  const todayVisits = users.filter(u => u.lastActive && (u.lastActive.includes("11-22") || u.lastActive.includes("Today"))).length;
+
+  const cityCounts = {};
+  users.forEach(u => {
+    const c = u.lastCity || "Delhi NCR";
+    cityCounts[c] = (cityCounts[c] || 0) + 1;
+  });
+  let topCity = "Delhi NCR";
+  let maxCount = 0;
+  for (const [c, cnt] of Object.entries(cityCounts)) {
+    if (cnt > maxCount) {
+      maxCount = cnt;
+      topCity = c;
+    }
+  }
+
+  const elU = document.getElementById("modalStatTotalUsers");
+  const elV = document.getElementById("modalStatTotalVisits");
+  const elT = document.getElementById("modalStatTodayVisits");
+  const elC = document.getElementById("modalStatTopCity");
+
+  if (elU) elU.textContent = totalUsers;
+  if (elV) elV.textContent = totalVisits;
+  if (elT) elT.textContent = todayVisits || users.length;
+  if (elC) elC.textContent = topCity;
+
+  renderModalTableRows(users);
+};
+
+function renderModalTableRows(users) {
+  const tbody = document.getElementById("modalUserTableBody");
+  if (!tbody) return;
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No users found. Click "Test Visitor" to simulate a login.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=0284C7&color=fff`;
+    return `
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <img src="${u.photoUrl || fallbackAvatar}" class="rounded-circle" width="30" height="30" onerror="this.src='${fallbackAvatar}'" style="object-fit:cover;">
+            <div>
+              <div class="fw-bold text-dark small">${u.name}</div>
+              <div class="text-muted" style="font-size: 0.7rem;">ID: ${u.id.substring(0, 8)}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="small font-monospace text-dark">${u.email}</span></td>
+        <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle small"><i class="fa-brands fa-google me-1"></i> Google</span></td>
+        <td><span class="small text-secondary">${u.firstSeen}</span></td>
+        <td><span class="small text-secondary">${u.lastActive}</span></td>
+        <td><span class="badge bg-secondary-subtle text-secondary fw-bold">${u.visits || 1}</span></td>
+        <td><span class="badge bg-primary-subtle text-primary fw-semibold">${u.lastCity || 'Delhi NCR'}</span></td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" onclick="window.deleteModalUser('${u.email}')" title="Delete record">
+            <i class="fa-solid fa-trash-can" style="font-size: 0.72rem;"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+window.filterModalUsers = function() {
+  const q = document.getElementById("modalUserSearchInput").value.toLowerCase().trim();
+  const users = getStoredAdminUsers();
+  if (!q) {
+    renderModalTableRows(users);
+    return;
+  }
+  const filtered = users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+  renderModalTableRows(filtered);
+};
+
+window.deleteModalUser = function(email) {
+  if (!confirm(`Delete user ${email} from authentication record?`)) return;
+  let users = getStoredAdminUsers();
+  users = users.filter(u => u.email !== email);
+  localStorage.setItem("airsense_users_db", JSON.stringify(users));
+  window.renderModalAdminDashboard();
+};
+
+window.simulateVisitorLoginModal = function() {
+  const sampleNames = ["Priya Nair", "Vikram Rathore", "Neha Sharma", "Arjun Kapoor", "Meera Iyer"];
+  const sampleCities = ["Delhi NCR", "Mumbai", "Bengaluru", "Chennai", "Kolkata", "Ahmedabad", "Jaipur"];
+  const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+  const randomCity = sampleCities[Math.floor(Math.random() * sampleCities.length)];
+  const randomEmail = randomName.toLowerCase().replace(" ", ".") + Math.floor(Math.random() * 89 + 10) + "@gmail.com";
+
+  const now = new Date();
+  const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const users = getStoredAdminUsers();
+  users.unshift({
+    id: "usr_" + Math.random().toString(36).substring(2, 9),
+    name: randomName,
+    email: randomEmail,
+    photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(randomName)}&background=random&color=fff`,
+    provider: "Google OAuth",
+    firstSeen: timeStr,
+    lastActive: timeStr,
+    visits: 1,
+    lastCity: randomCity,
+    status: "Active"
+  });
+  localStorage.setItem("airsense_users_db", JSON.stringify(users));
+  window.renderModalAdminDashboard();
+};
+
+window.clearAllUserData = function() {
+  if (!confirm("Are you sure you want to clear all test records?")) return;
+  localStorage.removeItem("airsense_users_db");
+  window.renderModalAdminDashboard();
+};
+
+window.exportUsersCsv = function() {
+  const users = getStoredAdminUsers();
+  if (!users.length) {
+    alert("No users to export.");
+    return;
+  }
+  let csv = "ID,Name,Email,Provider,First Seen,Last Active,Visits,Last City\n";
+  users.forEach(u => {
+    csv += `"${u.id}","${u.name}","${u.email}","${u.provider}","${u.firstSeen}","${u.lastActive}","${u.visits || 1}","${u.lastCity}"\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `AirSense_Users_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+};

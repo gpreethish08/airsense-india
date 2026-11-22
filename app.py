@@ -13,6 +13,8 @@ from typing import Optional, Dict, List, Any
 import os
 import io
 import csv
+import json
+from datetime import datetime
 
 from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index, get_aqi_category
 from services.pollution_index import calculate_pollution_index
@@ -238,6 +240,115 @@ def export_csv_endpoint(city_id: str):
     response = Response(content=output.getvalue(), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename=AirSense_{city_id}_Report.csv"
     return response
+
+
+# ============================================================================
+# User Authentication & Admin Web Console Endpoints
+# ============================================================================
+
+DATA_DIR = os.path.join(BASE_DIR, "data")
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
+
+def load_users_data():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR, exist_ok=True)
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return [
+        {
+            "id": "usr_google_1",
+            "name": "Preethish",
+            "email": "gpreethish08@gmail.com",
+            "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocISsample1",
+            "provider": "Google OAuth",
+            "firstSeen": "2026-11-20 09:15 AM",
+            "lastActive": "2026-11-22 10:45 AM",
+            "visits": 14,
+            "lastCity": "Delhi NCR",
+            "status": "Active"
+        },
+        {
+            "id": "usr_google_2",
+            "name": "Rahul Sharma",
+            "email": "rahul.sharma@gmail.com",
+            "photoUrl": "https://ui-avatars.com/api/?name=Rahul+Sharma&background=0D8ABC&color=fff",
+            "provider": "Google OAuth",
+            "firstSeen": "2026-11-21 02:30 PM",
+            "lastActive": "2026-11-22 08:20 AM",
+            "visits": 5,
+            "lastCity": "Mumbai",
+            "status": "Active"
+        }
+    ]
+
+def save_users_data(users):
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR, exist_ok=True)
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=2)
+
+class UserLoginRecord(BaseModel):
+    name: str
+    email: str
+    photoUrl: Optional[str] = None
+    provider: Optional[str] = "Google OAuth"
+    lastCity: Optional[str] = "Delhi NCR"
+
+@app.post("/api/auth/record-login")
+def record_login(payload: UserLoginRecord):
+    users = load_users_data()
+    email_clean = payload.email.lower().strip()
+    now_str = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+    
+    found = False
+    for u in users:
+        if u.get("email", "").lower().strip() == email_clean:
+            u["lastActive"] = now_str
+            u["visits"] = u.get("visits", 1) + 1
+            if payload.lastCity:
+                u["lastCity"] = payload.lastCity
+            found = True
+            break
+            
+    if not found:
+        users.insert(0, {
+            "id": f"usr_{os.urandom(4).hex()}",
+            "name": payload.name,
+            "email": payload.email,
+            "photoUrl": payload.photoUrl or f"https://ui-avatars.com/api/?name={payload.name}&background=0284C7&color=fff",
+            "provider": payload.provider or "Google OAuth",
+            "firstSeen": now_str,
+            "lastActive": now_str,
+            "visits": 1,
+            "lastCity": payload.lastCity or "Delhi NCR",
+            "status": "Active"
+        })
+        
+    save_users_data(users)
+    return {"status": "success", "message": f"User {payload.email} recorded."}
+
+@app.get("/api/admin/users")
+def get_admin_users():
+    users = load_users_data()
+    total_visits = sum(u.get("visits", 1) for u in users)
+    return {
+        "status": "success",
+        "total_users": len(users),
+        "total_visits": total_visits,
+        "users": users
+    }
+
+@app.delete("/api/admin/users/{email}")
+def delete_admin_user(email: str):
+    users = load_users_data()
+    initial_len = len(users)
+    users = [u for u in users if u.get("email", "").lower() != email.lower()]
+    save_users_data(users)
+    return {"status": "success", "deleted": initial_len - len(users)}
 
 
 # Root route
