@@ -760,3 +760,52 @@ footer {
   border: none;
   border-radius: 18px;
 }
+
+
+/* Specific Place Finder Styles */
+.place-finder-container {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+}
+
+.place-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1050;
+}
+
+.place-search-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 0.84rem;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.place-search-item:hover, .place-search-item.active {
+  background: #E0F2FE;
+  color: #0284C7;
+}
+
+@keyframes pulsePin {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 12px rgba(2, 132, 199, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(2, 132, 199, 0); }
+}
+
+.searched-place-pin {
+  animation: pulsePin 2s infinite;
+  border: 3px solid #FFFFFF !important;
+}

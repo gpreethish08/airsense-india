@@ -491,6 +491,53 @@
           </div>
         </div>
 
+        <!-- Specific Place Finder (All States & UTs) -->
+        <div class="place-finder-container mb-3 p-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <span class="small fw-bold text-dark d-flex align-items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass-location text-primary fs-6"></i> <span>Specific Place Finder (All States &amp; UTs):</span>
+            </span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle small fw-semibold">
+              <i class="fa-solid fa-crosshairs me-1"></i> Search any place or click directly on map
+            </span>
+          </div>
+
+          <div class="row g-2 align-items-center position-relative">
+            <div class="col-12 col-md-8 position-relative">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted">
+                  <i class="fa-solid fa-location-dot text-danger"></i>
+                </span>
+                <input type="text" id="mapPlaceSearchInput" class="form-control border-start-0 ps-1" 
+                       placeholder="Search any place in India (e.g. Rohini, Juhu, Whitefield, Salt Lake, Varanasi)..." 
+                       autocomplete="off" onkeydown="if(event.key === 'Enter') window.searchPlaceOnMap()">
+                <button class="btn btn-outline-secondary border-start-0" type="button" onclick="document.getElementById('mapPlaceSearchInput').value = ''; window.clearPlaceSearch();" title="Clear">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+              <!-- Autocomplete suggestions dropdown -->
+              <div id="placeSearchResults" class="place-search-dropdown d-none"></div>
+            </div>
+
+            <div class="col-6 col-md-2">
+              <button class="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1" onclick="window.searchPlaceOnMap()" id="btnFindPlaceAqi">
+                <i class="fa-solid fa-search"></i> <span>Find AQI</span>
+              </button>
+            </div>
+
+            <div class="col-6 col-md-2">
+              <button class="btn btn-outline-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-1" onclick="window.locateUserGps()" title="Find AQI at your current GPS location">
+                <i class="fa-solid fa-location-crosshairs"></i> <span>My Location</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Place Search Info Banner (Appears when place is selected) -->
+          <div id="placeFoundBanner" class="alert alert-light border mt-3 mb-0 d-none py-2 px-3 align-items-center justify-content-between flex-wrap gap-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
         <!-- Interactive Map Container -->
         <div id="indiaMap"></div>
 
