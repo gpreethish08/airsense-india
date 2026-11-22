@@ -110,6 +110,9 @@
             <a class="nav-link-custom" href="#pollutantsSection"><i class="fa-solid fa-smog text-primary me-1"></i> Pollutants</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link-custom" href="#calendarSection"><i class="fa-solid fa-calendar-days text-primary me-1"></i> Calendar</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link-custom" href="#mapSection"><i class="fa-solid fa-map-location-dot text-primary me-1"></i> India Map</a>
           </li>
           <li class="nav-item">
@@ -467,7 +470,78 @@
       </div>
     </section>
 
-    <!-- Section 3: Interactive India AQI Map -->
+    <!-- Section 3: Air Quality Calendar (Past 3 Months, Present Month, Future 3 Months) -->
+    <section id="calendarSection" class="mb-5">
+      <div class="calendar-card">
+        
+        <div class="section-heading-row mb-3">
+          <div>
+            <h2 class="section-main-title">Air Quality Calendar <span id="calYearLabel">2026 - 2027</span></h2>
+            <a href="#heroSection" id="calCityLink" class="section-city-link">Delhi</a>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <select id="calYearSelect" class="form-select form-select-sm" style="width: 125px; border-radius: 8px; font-weight: 600;">
+              <option value="2026" selected>2026 - 2027</option>
+            </select>
+            <select id="calStandardSelect" class="form-select form-select-sm" style="width: 120px; border-radius: 8px; font-weight: 600;">
+              <option value="us" selected>AQI (US)</option>
+              <option value="cpcb">AQI (CPCB)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Month Quick-Jump Navigation Bar (Past 3 Months, Current Month, Future 3 Months) -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pt-1">
+          <div class="d-flex flex-wrap align-items-center gap-1" id="calMonthPillsContainer">
+            <!-- Dynamically populated: Aug, Sep, Oct, Nov, Dec, Jan, Feb -->
+          </div>
+          <div>
+            <button id="btnToggleAllMonths" class="btn btn-sm btn-outline-primary fw-bold px-3 rounded-pill" onclick="window.toggleAllCalendarMonths()">
+              <i class="fa-solid fa-calendar-days me-1"></i> Show All 7 Months
+            </button>
+          </div>
+        </div>
+
+        <!-- Month Grids Container -->
+        <div class="row g-4" id="calendarMonthsContainer">
+          <!-- Populated dynamically: Past 3 Months, Current Month, Future 3 Months -->
+        </div>
+
+        <!-- Calendar Bottom Legend Bar & Navigation -->
+        <div class="cal-legend-container">
+          <div class="cal-legend-bar">
+            <div class="cal-legend-gradient"></div>
+            <div class="cal-legend-labels">
+              <span>Good</span>
+              <span>Moderate</span>
+              <span>Poor</span>
+              <span>Unhealthy</span>
+              <span>Severe</span>
+              <span>Hazardous</span>
+            </div>
+            <div class="cal-legend-ticks">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+              <span>150</span>
+              <span>200</span>
+              <span>300</span>
+              <span>301+</span>
+            </div>
+          </div>
+
+          <!-- Month Shift Controls -->
+          <div class="d-flex align-items-center gap-2">
+            <button class="cal-nav-btn" id="calPrevBtn" onclick="window.prevCalendarMonths()" title="Previous Months"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="cal-nav-btn" id="calNextBtn" onclick="window.nextCalendarMonths()" title="Next Months"><i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 4: Interactive India AQI Map -->
     <section id="mapSection" class="mb-5">
       <div class="clean-card p-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
