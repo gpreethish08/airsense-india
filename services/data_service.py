@@ -1206,6 +1206,43 @@ def fetch_datagovin_cpcb_live_data(city_name: str, key: str = "") -> Optional[Di
     return None
 
 
+def fetch_waqi_live_data(lat: float, lon: float, token: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Fetches real-time AQI and station data from WAQI (World Air Quality Index) API.
+    """
+    waqi_token = token or os.getenv("WAQI_TOKEN", "")
+    if not waqi_token:
+        return None
+    try:
+        url = f"https://api.waqi.info/feed/geo:{lat};{lon}/?token={waqi_token}"
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            payload = res.json()
+            if payload.get("status") == "ok":
+                data = payload.get("data", {})
+                iaqi = data.get("iaqi", {})
+                return {
+                    "source": "WAQI Real-Time",
+                    "pollutants": {
+                        "pm25": iaqi.get("pm25", {}).get("v", 0.0),
+                        "pm10": iaqi.get("pm10", {}).get("v", 0.0),
+                        "no2": iaqi.get("no2", {}).get("v", 0.0),
+                        "so2": iaqi.get("so2", {}).get("v", 0.0),
+                        "co": iaqi.get("co", {}).get("v", 0.0) / 10.0 if "co" in iaqi else 1.0,
+                        "o3": iaqi.get("o3", {}).get("v", 0.0),
+                        "nh3": 18.0
+                    },
+                    "weather": {
+                        "temp": iaqi.get("t", {}).get("v", 25.0),
+                        "humidity": iaqi.get("h", {}).get("v", 50.0),
+                        "wind_speed": iaqi.get("w", {}).get("v", 5.0)
+                    }
+                }
+    except Exception as e:
+        print(f"WAQI fetch error: {e}")
+    return None
+
+
 def calculate_city_rank(city_id: str, current_aqi: int, city_name: str = "") -> Dict[str, Any]:
     """
     Calculates global and national air pollution ranking (1st = most polluted).
