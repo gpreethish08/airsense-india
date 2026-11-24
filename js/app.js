@@ -807,7 +807,7 @@ function renderHero(data) {
 
   const rankText = document.getElementById("heroRankText");
   if (rankText) {
-    rankText.textContent = (info && info.rank_text) ? info.rank_text : `Currently, ${info.name || 'this city'} ranks ${rankVal}th among the most polluted cities globally.`;
+    rankText.textContent = (info && info.rank_text) ? info.rank_text : `Currently, ${info.name || 'this city'} ranks ${getOrdinal(rankVal)} among the most polluted cities globally.`;
   }
 
   const link1 = document.getElementById("pollutantsCityLink");
@@ -1042,18 +1042,29 @@ function buildCalendarHtml(monthsData) {
   const container = document.getElementById("calendarMonthsContainer");
   if (!container) return;
 
+  const activeCity = findCity(currentCityId);
+  const liveAqi = Math.round(Number(activeCity.aqi)) || 120;
+  const liveCat = getAqiCategoryName(liveAqi);
+  const liveColor = getAqiColor(liveAqi);
+
+  const now = new Date();
+  const currYear = now.getFullYear();
+  const currMonth = now.getMonth() + 1; // 1-12
+  const currDay = now.getDate();        // 1-31
+
   const weekdays = ["Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."];
   let html = "";
 
   monthsData.forEach(m => {
-    const isCur = m.is_current ? " border-2 border-danger shadow-sm" : "";
-    const badgeClass = m.is_current ? "bg-danger text-white" : "bg-light text-secondary border";
-    const badgeHtml = m.badge
-      ? `<span class="badge ${badgeClass} ms-2" style="font-size: 0.68rem; vertical-align: middle;">${m.badge}</span>`
+    const isCur = (m.month === currMonth && (m.year === currYear || !m.year));
+    const badgeClass = isCur ? "bg-danger text-white" : "bg-light text-secondary border";
+    const badgeText = isCur ? `Present Month (${liveAqi} ${liveCat})` : m.badge;
+    const badgeHtml = badgeText
+      ? `<span class="badge ${badgeClass} ms-2" style="font-size: 0.68rem; vertical-align: middle;">${badgeText}</span>`
       : "";
 
     html += `
-      <div class="col-lg-4 col-md-6 month-calendar-block${isCur}">
+      <div class="col-lg-4 col-md-6 month-calendar-block${isCur ? ' border-2 border-danger shadow-sm' : ''}">
         <div class="month-title-header text-center d-flex align-items-center justify-content-center">
           <span>${m.month_name}</span> ${badgeHtml}
         </div>
@@ -1067,15 +1078,19 @@ function buildCalendarHtml(monthsData) {
       if (!d) {
         html += `<div style="min-height: 48px;"></div>`;
       } else {
-        const textColor = d.color === "#FFFF00" ? "#7A6800" : "#FFFFFF";
-        const todayStyle = d.is_today ? " outline: 2.5px solid #0284C7; outline-offset: -2px; position: relative;" : "";
-        const todayTag = d.is_today ? `<span style="position: absolute; top: -6px; right: -4px; background: #0284C7; color: #fff; font-size: 0.6rem; padding: 1px 4px; border-radius: 4px; font-weight: 800; z-index: 2;">LIVE</span>` : "";
+        const isToday = !!(d.is_today || (m.month === currMonth && (m.year === currYear || !m.year) && d.day === currDay));
+        const dayAqi = isToday ? liveAqi : d.aqi;
+        const dayColor = isToday ? liveColor : (d.color || getAqiColor(dayAqi));
+        const dayCat = isToday ? liveCat : (d.category || getAqiCategoryName(dayAqi));
+        const textColor = dayColor === "#FFFF00" ? "#7A6800" : "#FFFFFF";
+        const todayStyle = isToday ? " outline: 2.5px solid #0284C7; outline-offset: -2px; position: relative;" : "";
+        const todayTag = isToday ? `<span style="position: absolute; top: -6px; right: -4px; background: #0284C7; color: #fff; font-size: 0.6rem; padding: 1px 4px; border-radius: 4px; font-weight: 800; z-index: 2;">LIVE</span>` : "";
         html += `
-          <div class="cal-day-cell" style="${todayStyle}" title="${d.date_label}: AQI ${d.aqi} (${d.category})${d.is_today ? ' - TODAY (Matches Live AQI)' : ''}">
+          <div class="cal-day-cell" style="${todayStyle}" title="${d.date_label}: AQI ${dayAqi} (${dayCat})${isToday ? ' - TODAY (Matches Live AQI)' : ''}">
             ${todayTag}
             <div class="cal-cell-date">${d.date_label}</div>
-            <div class="cal-cell-aqi" style="background-color: ${d.color}; color: ${textColor}; font-weight: 700;">
-              ${d.aqi}
+            <div class="cal-cell-aqi" style="background-color: ${dayColor}; color: ${textColor}; font-weight: 700;">
+              ${dayAqi}
             </div>
           </div>
         `;

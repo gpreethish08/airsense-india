@@ -12,7 +12,7 @@ import os
 import time
 import requests
 
-from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index
+from services.aqi_calculator import calculate_overall_aqi, calculate_sub_index, get_aqi_category
 from services.pollution_index import calculate_pollution_index
 from services.health_advisory import get_health_advisory
 from services.forecast import generate_7day_forecast
@@ -1309,7 +1309,14 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
     city_key = resolve_city_key(city_id)
     target_city = INDIAN_CITIES.get(city_key, INDIAN_CITIES["Delhi"])
     is_delhi = "delhi" in city_id.lower() or city_key.lower() == "delhi"
-    state_aqi = 406 if is_delhi else calculate_overall_aqi(target_city["pollutants"])["aqi"]
+    try:
+        details = get_city_details(city_id)
+        if details and "aqi_data" in details and "aqi" in details["aqi_data"]:
+            state_aqi = int(details["aqi_data"]["aqi"])
+        else:
+            state_aqi = calculate_overall_aqi(target_city["pollutants"])["aqi"]
+    except Exception:
+        state_aqi = calculate_overall_aqi(target_city["pollutants"])["aqi"]
 
     # Exact daily AQI values for all 7 months (Past 3 months, Current month, Future 3 months)
     delhi_calendar_all_7 = {
@@ -1437,13 +1444,17 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
                     "color": color,
                     "bg": bg,
                     "textColor": textColor,
-                    "weekday": day_idx
+                    "weekday": day_idx,
+                    "is_today": is_today
                 })
 
+        cat_info = get_aqi_category(state_aqi)
+        cat_name = cat_info.get("category", "Severe") if isinstance(cat_info, dict) else str(cat_info)
+        dynamic_badge = f"Present Month ({state_aqi} {cat_name})" if is_current else m_badge
         results.append({
             "month": m,
             "month_name": m_name,
-            "badge": m_badge,
+            "badge": dynamic_badge,
             "is_current": is_current,
             "year": m_year,
             "weeks": cal,
