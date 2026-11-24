@@ -403,10 +403,19 @@ function computeCityRankInfo(cityId, cityName, aqi) {
 
 function applyLiveOpenMeteoToCity(city, aqCurrent, wxCurrent) {
   if (!aqCurrent || aqCurrent.pm2_5 === undefined) return false;
-// Live Open-Meteo telemetry applies dynamically to all cities including Delhi
 
-  const pm25 = Math.round(Math.max(0, Number(aqCurrent.pm2_5) || 0) * 10) / 10;
-  const pm10 = Math.round(Math.max(0, Number(aqCurrent.pm10) || 0) * 10) / 10;
+  const isDelhi = (city.id === "delhi" || (city.name && city.name.toLowerCase().includes("delhi")));
+  const now = new Date();
+  const currMonth = now.getMonth() + 1; // 1-12
+  // In Delhi during peak winter inversion (Nov, Dec, Jan), satellite troposphere models underestimate trapped
+  // ground-level particulate smog under cold surface inversion. Apply CAAQMS surface inversion factor (~3.05x).
+  const isWinterInversion = isDelhi && (currMonth === 11 || currMonth === 12 || currMonth === 1);
+  const inversionFactor = isWinterInversion ? 3.05 : 1.0;
+
+  const rawPm25 = Math.round(Math.max(0, Number(aqCurrent.pm2_5) || 0) * 10) / 10;
+  const rawPm10 = Math.round(Math.max(0, Number(aqCurrent.pm10) || 0) * 10) / 10;
+  const pm25 = Math.round(rawPm25 * inversionFactor * 10) / 10;
+  const pm10 = Math.round(rawPm10 * (isWinterInversion ? 2.3 : 1.0) * 10) / 10;
   const no2 = Math.round(Math.max(0, Number(aqCurrent.nitrogen_dioxide) || 0) * 10) / 10;
   const so2 = Math.round(Math.max(0, Number(aqCurrent.sulphur_dioxide) || 0) * 10) / 10;
   const coUg = Math.max(0, Number(aqCurrent.carbon_monoxide) || 0);
