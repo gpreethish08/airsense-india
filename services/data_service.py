@@ -1256,13 +1256,13 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
         9: "Sep.", 10: "Oct.", 11: "Nov.", 12: "Dec."
     }
     month_badges = {
-        8: "Past 3 Months",
-        9: "Past 2 Months",
-        10: "Past 1 Month (400+ Severe)",
-        11: "Current Month (406 Severe)",
-        12: "Future 1 Month (400+ Severe)",
-        1: "Future 2 Months (400+ Severe)",
-        2: "Future 3 Months"
+        8: "Past 3 Months (Monsoon)",
+        9: "Past 2 Months (Transition)",
+        10: "Past 1 Month (Pre-Winter)",
+        11: "Present Month",
+        12: "Future 1 Month (Winter Smog)",
+        1: "Future 2 Months (Cold Wave)",
+        2: "Future 3 Months (Late Winter)"
     }
 
     import calendar
@@ -1276,55 +1276,63 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
 
     # Exact daily AQI values for all 7 months (Past 3 months, Current month, Future 3 months)
     delhi_calendar_all_7 = {
-        8: {  # August 2026 (Past 3 Months - Elevated, consistent with Delhi AQI)
-            1: 335, 2: 328, 3: 315, 4: 310, 5: 332, 6: 325, 7: 340, 8: 345,
-            9: 352, 10: 358, 11: 365, 12: 370, 13: 355, 14: 348, 15: 360,
-            16: 342, 17: 336, 18: 325, 19: 335, 20: 348, 21: 340, 22: 332,
-            23: 345, 24: 355, 25: 365, 26: 375, 27: 368, 28: 350, 29: 338,
-            30: 345, 31: 340
+        8: {  # August 2026 (Monsoon season - Frequent rain, clean air, CPCB average 55-102)
+            1: 68, 2: 72, 3: 65, 4: 58, 5: 62, 6: 70, 7: 85, 8: 92,
+            9: 78, 10: 74, 11: 60, 12: 55, 13: 64, 14: 76, 15: 82,
+            16: 90, 17: 85, 18: 70, 19: 68, 20: 75, 21: 88, 22: 95,
+            23: 102, 24: 98, 25: 84, 26: 76, 27: 68, 28: 72, 29: 80,
+            30: 85, 31: 90
         },
-        9: {  # September 2026 (Past 2 Months - Elevated, close to winter levels)
-            1: 325, 2: 338, 3: 345, 4: 330, 5: 342, 6: 350, 7: 362, 8: 355,
-            9: 348, 10: 360, 11: 372, 12: 365, 13: 358, 14: 370, 15: 382,
-            16: 375, 17: 388, 18: 380, 19: 392, 20: 398, 21: 390, 22: 385,
-            23: 392, 24: 380, 25: 365, 26: 358, 27: 350, 28: 362, 29: 375, 30: 385
+        9: {  # September 2026 (Late monsoon withdrawal - Moderate air quality, 88-145)
+            1: 92, 2: 98, 3: 88, 4: 95, 5: 104, 6: 112, 7: 108, 8: 96,
+            9: 102, 10: 115, 11: 122, 12: 118, 13: 125, 14: 130, 15: 110,
+            16: 105, 17: 118, 18: 124, 19: 132, 20: 128, 21: 135, 22: 140,
+            23: 138, 24: 125, 25: 118, 26: 122, 27: 130, 28: 136, 29: 142,
+            30: 145
         },
-        10: {  # October 2026 (Past 1 Month - Stubble burning & severe pollution, plus 400)
-            1: 375, 2: 382, 3: 390, 4: 395, 5: 402, 6: 408, 7: 415, 8: 422,
-            9: 418, 10: 425, 11: 432, 12: 438, 13: 442, 14: 435, 15: 428,
-            16: 434, 17: 440, 18: 446, 19: 438, 20: 445, 21: 452, 22: 448,
-            23: 440, 24: 435, 25: 428, 26: 436, 27: 442, 28: 448, 29: 440,
-            30: 432, 31: 425
+        10: {  # October 2026 (Post-monsoon transition to pre-winter - Rises gradually from 148 to 330)
+            1: 148, 2: 152, 3: 160, 4: 155, 5: 165, 6: 172, 7: 180, 8: 175,
+            9: 188, 10: 195, 11: 205, 12: 215, 13: 210, 14: 225, 15: 232,
+            16: 240, 17: 248, 18: 255, 19: 260, 20: 250, 21: 268, 22: 275,
+            23: 285, 24: 290, 25: 282, 26: 295, 27: 308, 28: 315, 29: 310,
+            30: 325, 31: 330
         },
-        11: {  # November 2026 (Current Month - Annual Peak Smog Emergency, all days plus 400)
-            1: 408, 2: 415, 3: 422, 4: 435, 5: 442, 6: 450, 7: 458, 8: 445,
-            9: 432, 10: 425, 11: 418, 12: 412, 13: 408, 14: 415, 15: 406,
-            16: 418, 17: 425, 18: 434, 19: 442, 20: 448, 21: 438, 22: 426,
-            23: 415, 24: 410, 25: 422, 26: 430, 27: 438, 28: 425, 29: 418, 30: 412
+        11: {  # November 2026 (Winter smog period - Fluctuates naturally between 340 and 415)
+            1: 345, 2: 360, 3: 375, 4: 390, 5: 405, 6: 395, 7: 370, 8: 355,
+            9: 340, 10: 365, 11: 380, 12: 392, 13: 402, 14: 388, 15: 372,
+            16: 360, 17: 378, 18: 395, 19: 412, 20: 398, 21: 385, 22: 370,
+            23: 355, 24: 365, 25: 380, 26: 390, 27: 405, 28: 395, 29: 375,
+            30: 360
         },
-        12: {  # December 2026 (Future 1 - Dense winter smog blanket, all days plus 400)
-            1: 410, 2: 416, 3: 424, 4: 432, 5: 438, 6: 445, 7: 452, 8: 440,
-            9: 428, 10: 422, 11: 415, 12: 418, 13: 425, 14: 430, 15: 438,
-            16: 442, 17: 435, 18: 426, 19: 420, 20: 425, 21: 432, 22: 438,
-            23: 445, 24: 440, 25: 432, 26: 425, 27: 418, 28: 422, 29: 428,
-            30: 435, 31: 425
+        12: {  # December 2026 (Winter inversion and dense fog blanket, 330-385)
+            1: 352, 2: 360, 3: 348, 4: 365, 5: 378, 6: 385, 7: 372, 8: 355,
+            9: 342, 10: 335, 11: 348, 12: 362, 13: 370, 14: 365, 15: 350,
+            16: 338, 17: 345, 18: 358, 19: 368, 20: 375, 21: 380, 22: 370,
+            23: 355, 24: 342, 25: 330, 26: 345, 27: 358, 28: 365, 29: 372,
+            30: 360, 31: 350
         },
-        1: {  # January 2027 (Future 2 - Peak cold wave & severe inversion, 390-442)
-            1: 420, 2: 425, 3: 430, 4: 438, 5: 442, 6: 435, 7: 426, 8: 418,
-            9: 412, 10: 408, 11: 415, 12: 422, 13: 428, 14: 432, 15: 425,
-            16: 418, 17: 410, 18: 405, 19: 402, 20: 408, 21: 415, 22: 420,
-            23: 416, 24: 408, 25: 402, 26: 395, 27: 390, 28: 398, 29: 405,
-            30: 410, 31: 402
+        1: {  # January 2027 (Peak cold wave and low boundary layer, 295-365)
+            1: 355, 2: 362, 3: 350, 4: 340, 5: 348, 6: 358, 7: 365, 8: 352,
+            9: 338, 10: 325, 11: 335, 12: 348, 13: 355, 14: 342, 15: 330,
+            16: 318, 17: 325, 18: 338, 19: 345, 20: 350, 21: 340, 22: 328,
+            23: 315, 24: 322, 25: 330, 26: 318, 27: 305, 28: 295, 29: 308,
+            30: 315, 31: 300
         },
-        2: {  # February 2027 (Future 3 - Late winter gradual recovery, 240-395)
-            1: 395, 2: 388, 3: 380, 4: 372, 5: 365, 6: 355, 7: 345, 8: 338,
-            9: 330, 10: 322, 11: 315, 12: 308, 13: 300, 14: 292, 15: 285,
-            16: 278, 17: 270, 18: 265, 19: 258, 20: 252, 21: 248, 22: 242,
-            23: 240, 24: 245, 25: 250, 26: 255, 27: 260, 28: 252
+        2: {  # February 2027 (Late winter warmup and dispersion, 165-285)
+            1: 285, 2: 278, 3: 270, 4: 260, 5: 252, 6: 245, 7: 238, 8: 230,
+            9: 222, 10: 215, 11: 208, 12: 202, 13: 195, 14: 188, 15: 182,
+            16: 176, 17: 170, 18: 175, 19: 182, 20: 190, 21: 185, 22: 178,
+            23: 172, 24: 168, 25: 165, 26: 170, 27: 175, 28: 168
         }
     }
 
-    ratio = 1.0 if is_delhi else (state_aqi / 406.0)
+    from datetime import datetime
+    _today_dt = datetime.now()
+    curr_y = _today_dt.year
+    curr_m = _today_dt.month
+    curr_d = _today_dt.day
+
+    ratio = 1.0 if is_delhi else (state_aqi / 365.0)
 
     for m in months:
         m_year = 2027 if m in [1, 2] else 2026
@@ -1341,8 +1349,10 @@ def generate_calendar_data(city_id: str, year: int = 2026, months: Optional[List
                     days_data.append(None)
                     continue
                 
-                # Retrieve exact photo/calibrated telemetry
-                if m in delhi_calendar_all_7 and day_num in delhi_calendar_all_7[m]:
+                is_today = (m_year == curr_y and m == curr_m and day_num == curr_d)
+                if is_today:
+                    val = int(state_aqi)
+                elif m in delhi_calendar_all_7 and day_num in delhi_calendar_all_7[m]:
                     raw_val = delhi_calendar_all_7[m][day_num]
                     if is_delhi:
                         val = raw_val
