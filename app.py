@@ -23,7 +23,8 @@ from services.forecast import generate_7day_forecast
 from services.data_service import (
     get_all_cities, get_city_details, get_seasonal_patterns, 
     INDIAN_CITIES, generate_calendar_data, fetch_openweather_data, 
-    fetch_iqair_data, fetch_waqi_live_data, fetch_openmeteo_live_data, resolve_city_key
+    fetch_iqair_data, fetch_waqi_live_data, fetch_openmeteo_live_data, resolve_city_key,
+    get_solar_uv_index
 )
 
 app = FastAPI(
@@ -132,7 +133,7 @@ def get_openweather_live(city_id: str, api_key: Optional[str] = None):
             "humidity": target["humidity"],
             "wind_speed": target["wind_speed"],
             "description": "Partly Cloudy",
-            "uv_index": 1.5
+            "uv_index": get_solar_uv_index(target["lat"], target["lon"], "Partly Cloudy")
         }
     }
 

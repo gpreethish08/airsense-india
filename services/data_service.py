@@ -48,7 +48,40 @@ def _wmo_weather_description(code: Any) -> str:
     return "Partly Cloudy"
 
 
-def _parse_openmeteo_pair(aq_current: Dict[str, Any], wx_current: Optional[Dict[str, Any]], fallback_nh3: float = 18.0, is_delhi: bool = False) -> Dict[str, Any]:
+def get_solar_uv_index(lat: float, lon: float, weather_desc: str = "") -> float:
+    """Calculates a realistic diurnal solar UV Index based on solar elevation for Indian coordinates."""
+    now_utc = datetime.utcnow()
+    ist_time = now_utc + timedelta(hours=5, minutes=30)
+    hour = ist_time.hour + ist_time.minute / 60.0
+
+    if hour < 6.0 or hour >= 18.5:
+        return 0.0
+
+    peak_hour = 12.25
+    diff = abs(hour - peak_hour)
+    if diff > 6.0:
+        return 0.1
+
+    is_winter = ist_time.month in (11, 12, 1, 2)
+    base_peak = 8.2 - max(0.0, (lat - 10.0)) * 0.12
+    if is_winter:
+        base_peak *= 0.72
+
+    cos_angle = math.cos((diff / 6.0) * (math.pi / 2.0))
+    uv = base_peak * (max(0.0, cos_angle) ** 1.3)
+
+    d = (weather_desc or "").lower()
+    if any(k in d for k in ["thunder", "heavy", "overcast"]):
+        uv *= 0.35
+    elif any(k in d for k in ["rain", "drizzle", "cloud"]):
+        uv *= 0.65
+    elif any(k in d for k in ["fog", "mist", "haze", "smoke"]):
+        uv *= 0.75
+
+    return round(max(0.0, uv), 1)
+
+
+def _parse_openmeteo_pair(aq_current: Dict[str, Any], wx_current: Optional[Dict[str, Any]], fallback_nh3: float = 18.0, is_delhi: bool = False, lat: float = 28.6139, lon: float = 77.2090) -> Dict[str, Any]:
     """Converts an Open-Meteo air quality + weather `current` payload into internal CPCB structures."""
     raw_pm25 = max(0.0, float(aq_current.get("pm2_5") or 0.0))
     raw_pm10 = max(0.0, float(aq_current.get("pm10") or 0.0))
@@ -73,12 +106,22 @@ def _parse_openmeteo_pair(aq_current: Dict[str, Any], wx_current: Optional[Dict[
         "nh3": round(float(fallback_nh3), 1)
     }
     wx = wx_current or {}
+    w_desc = _wmo_weather_description(wx.get("weather_code"))
+    uv_val = None
+    if wx.get("uv_index") is not None:
+        try:
+            uv_val = round(float(wx.get("uv_index")), 1)
+        except (TypeError, ValueError):
+            uv_val = None
+    if uv_val is None:
+        uv_val = get_solar_uv_index(lat, lon, w_desc)
+
     weather_info = {
         "temp": round(float(wx.get("temperature_2m", 28.0)), 1),
         "humidity": int(round(float(wx.get("relative_humidity_2m", 55)))),
         "wind_speed": round(float(wx.get("wind_speed_10m", 10.0)), 1),
-        "description": _wmo_weather_description(wx.get("weather_code")),
-        "uv_index": 1.5
+        "description": w_desc,
+        "uv_index": uv_val
     }
     return {
         "source": "Open-Meteo Live Air Quality API",
@@ -121,7 +164,7 @@ def fetch_openmeteo_live_data(lat: float, lon: float, fallback_nh3: float = 18.0
                 params={
                     "latitude": lat,
                     "longitude": lon,
-                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index"
                 },
                 timeout=6
             )
@@ -130,7 +173,7 @@ def fetch_openmeteo_live_data(lat: float, lon: float, fallback_nh3: float = 18.0
         except Exception:
             pass
 
-        parsed = _parse_openmeteo_pair(aq_current, wx_current, fallback_nh3=fallback_nh3, is_delhi=is_delhi)
+        parsed = _parse_openmeteo_pair(aq_current, wx_current, fallback_nh3=fallback_nh3, is_delhi=is_delhi, lat=lat, lon=lon)
         _OPENMETEO_CITY_CACHE[cache_key] = {"ts": now, "data": parsed}
         return parsed
     except Exception as e:
@@ -172,7 +215,7 @@ def fetch_openmeteo_batch_live() -> Dict[str, Dict[str, Any]]:
                 params={
                     "latitude": lats,
                     "longitude": lons,
-                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+                    "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index"
                 },
                 timeout=10
             )
@@ -187,7 +230,7 @@ def fetch_openmeteo_batch_live() -> Dict[str, Dict[str, Any]]:
             wx_cur = (wx_item or {}).get("current") or {}
             if "pm2_5" in aq_cur:
                 c_is_delhi = ("delhi" in city_key.lower() or city.get("id") == "delhi")
-                parsed = _parse_openmeteo_pair(aq_cur, wx_cur, fallback_nh3=city["pollutants"].get("nh3", 18.0), is_delhi=c_is_delhi)
+                parsed = _parse_openmeteo_pair(aq_cur, wx_cur, fallback_nh3=city["pollutants"].get("nh3", 18.0), is_delhi=c_is_delhi, lat=city["lat"], lon=city["lon"])
                 result[city_key] = parsed
                 _OPENMETEO_CITY_CACHE[f"{city['lat']:.4f},{city['lon']:.4f}_{c_is_delhi}"] = {"ts": now, "data": parsed}
 
@@ -815,7 +858,7 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
         "humidity": city["humidity"],
         "wind_speed": city["wind_speed"],
         "description": "Partly Cloudy",
-        "uv_index": 1.5
+        "uv_index": get_solar_uv_index(city["lat"], city["lon"], "Partly Cloudy")
     }
     api_source = "CAAQMS Baseline"
 
@@ -978,7 +1021,7 @@ def get_city_details(city_id_or_name: str, openweather_key: Optional[str] = None
             "humidity": weather_info["humidity"],
             "wind_speed": weather_info["wind_speed"],
             "description": weather_info.get("description", "Partly Cloudy"),
-            "uv_index": weather_info.get("uv_index", 1.5),
+            "uv_index": weather_info.get("uv_index") if weather_info.get("uv_index") is not None else get_solar_uv_index(city["lat"], city["lon"], weather_info.get("description", "Partly Cloudy")),
             "timestamp": now_formatted,
             "api_source": api_source,
             "rank": rank_info["rank"],
@@ -1101,7 +1144,7 @@ def fetch_openweather_data(lat: float, lon: float, api_key: Optional[str] = None
             "humidity": 55,
             "wind_speed": 10.0,
             "description": "Partly Cloudy",
-            "uv_index": 1.5
+            "uv_index": get_solar_uv_index(lat, lon, "Partly Cloudy")
         }
 
         if weather_res.status_code == 200:
@@ -1158,7 +1201,7 @@ def fetch_iqair_data(city: str, state: str, lat: float, lon: float, api_key: Opt
                     "humidity": weather.get("hu", 17),
                     "wind_speed": round(weather.get("ws", 2.9) * 3.6, 1),
                     "description": "Partly Cloudy",
-                    "uv_index": 1.5
+                    "uv_index": get_solar_uv_index(lat, lon, "Partly Cloudy")
                 }
             }
     except Exception as e:

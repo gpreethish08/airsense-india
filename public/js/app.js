@@ -401,6 +401,35 @@ function computeCityRankInfo(cityId, cityName, aqi) {
   return { rank, text };
 }
 
+function getRealisticSolarUvIndex(lat, lon, desc) {
+  const now = new Date();
+  const hours = now.getHours() + now.getMinutes() / 60;
+  if (hours < 6.0 || hours >= 18.5) return 0.0;
+  
+  const peakHour = 12.25;
+  const diff = Math.abs(hours - peakHour);
+  if (diff > 6.0) return 0.1;
+  
+  const month = now.getMonth() + 1;
+  const isWinter = (month >= 11 || month <= 2);
+  const cityLat = Number(lat) || 20.0;
+  let maxUv = 8.2 - Math.max(0, (cityLat - 10.0)) * 0.12;
+  if (isWinter) maxUv *= 0.72;
+  
+  const cosFactor = Math.cos((diff / 6.0) * (Math.PI / 2));
+  let estUv = maxUv * Math.pow(Math.max(0, cosFactor), 1.3);
+  
+  const d = (desc || "").toLowerCase();
+  if (d.includes("thunder") || d.includes("heavy") || d.includes("overcast")) {
+    estUv *= 0.35;
+  } else if (d.includes("rain") || d.includes("drizzle") || d.includes("cloud")) {
+    estUv *= 0.65;
+  } else if (d.includes("fog") || d.includes("mist") || d.includes("haze") || d.includes("smoke")) {
+    estUv *= 0.75;
+  }
+  return Math.round(Math.max(0.0, estUv) * 10) / 10;
+}
+
 function applyLiveOpenMeteoToCity(city, aqCurrent, wxCurrent) {
   if (!aqCurrent || aqCurrent.pm2_5 === undefined) return false;
 
@@ -446,6 +475,13 @@ function applyLiveOpenMeteoToCity(city, aqCurrent, wxCurrent) {
     if (wxCurrent.relative_humidity_2m !== undefined) city.humidity = Math.round(Number(wxCurrent.relative_humidity_2m));
     if (wxCurrent.wind_speed_10m !== undefined) city.wind = Math.round(Number(wxCurrent.wind_speed_10m) * 10) / 10;
     if (wxCurrent.weather_code !== undefined) city.description = getWmoDescription(wxCurrent.weather_code);
+    if (wxCurrent.uv_index !== undefined && wxCurrent.uv_index !== null) {
+      city.uv_index = Math.round(Number(wxCurrent.uv_index) * 10) / 10;
+    } else {
+      city.uv_index = getRealisticSolarUvIndex(city.lat, city.lon, city.description);
+    }
+  } else if (city.uv_index === undefined) {
+    city.uv_index = getRealisticSolarUvIndex(city.lat, city.lon, city.description);
   }
 
   city._liveLoaded = true;
@@ -560,7 +596,7 @@ async function fetchOpenMeteoForCity(city, force = false) {
   }
   try {
     const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi`;
-    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
+    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index`;
     const [aqRes, wxRes] = await Promise.all([
       fetch(aqUrl),
       fetch(wxUrl).catch(() => null)
@@ -579,7 +615,7 @@ async function refreshAllCitiesLiveAqi() {
     const lats = INDIAN_CITIES_LIST.map(c => c.lat).join(",");
     const lons = INDIAN_CITIES_LIST.map(c => c.lon).join(",");
     const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lons}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi`;
-    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
+    const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index`;
     const [aqRes, wxRes] = await Promise.all([
       fetch(aqUrl),
       fetch(wxUrl).catch(() => null)
@@ -611,6 +647,7 @@ async function refreshAllCitiesLiveAqi() {
       const clientData = generateClientCityData(activeCity);
       renderHero(clientData);
       renderMajorPollutants(clientData);
+      syncCalculatorWithCity(activeCity);
     }
   } catch (err) {
     // Keep current rendered values on offline/network error
@@ -645,6 +682,7 @@ window.loadCity = async function(cityId) {
   renderMajorPollutants(initialData);
   renderCalendar(city.id);
   updateMapFocus(city.lat, city.lon);
+  syncCalculatorWithCity(city);
 
   // Fetch live CAAQMS ground telemetry from official CPCB data.gov.in API
   let liveOk = await fetchDataGovInAqi(city);
@@ -659,6 +697,7 @@ window.loadCity = async function(cityId) {
     renderHero(liveData);
     renderMajorPollutants(liveData);
     renderCalendar(city.id);
+    syncCalculatorWithCity(city);
   }
 
   // If live FastAPI backend exists, merge server payload
@@ -677,6 +716,9 @@ window.loadCity = async function(cityId) {
           city.wind = data.city_info.wind_speed;
           city.description = data.city_info.description;
           city.rank = data.city_info.rank;
+          if (data.city_info.uv_index !== undefined && data.city_info.uv_index !== null) {
+            city.uv_index = data.city_info.uv_index;
+          }
         }
         if (data.raw_pollutants) {
           city.rawPollutants = data.raw_pollutants;
@@ -689,6 +731,7 @@ window.loadCity = async function(cityId) {
       renderMajorPollutants(data);
       renderCalendar(city.id);
       updateMapFocus(data.city_info.lat, data.city_info.lon);
+      syncCalculatorWithCity(city);
     }
   } catch (err) {
     // Client data is already rendered
@@ -709,6 +752,10 @@ function generateClientCityData(city) {
   const now = new Date();
   const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (Local Time)`;
 
+  const uvVal = (city.uv_index !== undefined && city.uv_index !== null)
+    ? city.uv_index
+    : getRealisticSolarUvIndex(city.lat, city.lon, city.description);
+
   return {
     city_info: {
       id: city.id,
@@ -721,7 +768,7 @@ function generateClientCityData(city) {
       humidity: city.humidity,
       wind_speed: city.wind,
       description: city.description || "Partly Cloudy",
-      uv_index: 1.5,
+      uv_index: uvVal,
       timestamp: timeStr,
       rank: city.rank,
       rank_text: computeCityRankInfo(city.id, city.name, aqiVal).text
@@ -806,7 +853,12 @@ function renderHero(data) {
   if (wWind) wWind.textContent = `${info.wind_speed} km/h`;
 
   const wUv = document.getElementById("heroWeatherUv");
-  if (wUv) wUv.textContent = `${info.uv_index || 1.5}`;
+  if (wUv) {
+    const uvVal = (info && info.uv_index !== undefined && info.uv_index !== null)
+      ? info.uv_index
+      : getRealisticSolarUvIndex(info ? info.lat : 20.0, info ? info.lon : 77.0, info ? info.description : "");
+    wUv.textContent = `${uvVal}`;
+  }
 
   function getOrdinal(n) {
     const s = ["th", "st", "nd", "rd"];
@@ -1775,7 +1827,7 @@ window.selectPlaceLocation = async function(lat, lon, placeName, stateName = "")
       humidity: humidity,
       wind_speed: wind,
       description: desc,
-      uv_index: 1.5,
+      uv_index: getRealisticSolarUvIndex(lat, lon, desc),
       timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " (Live)",
       rank: computeCityRankInfo("", placeName, aqiVal).rank,
       rank_text: computeCityRankInfo("", placeName, aqiVal).text
@@ -1935,14 +1987,21 @@ window.locateUserGps = function() {
 };
 
 // CPCB Calculator - Step by Step Linear Formula
-window.computeAqi = function() {
-  const pm25 = parseFloat(document.getElementById("calc_pm25").value) || null;
-  const pm10 = parseFloat(document.getElementById("calc_pm10").value) || null;
-  const no2 = parseFloat(document.getElementById("calc_no2").value) || null;
-  const so2 = parseFloat(document.getElementById("calc_so2").value) || null;
-  const co = parseFloat(document.getElementById("calc_co").value) || null;
-  const o3 = parseFloat(document.getElementById("calc_o3").value) || null;
-  const nh3 = parseFloat(document.getElementById("calc_nh3").value) || null;
+window.computeAqi = function(showAlert = true) {
+  const parseVal = (id) => {
+    const el = document.getElementById(id);
+    if (!el || el.value === "" || el.value === null) return null;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? null : v;
+  };
+
+  const pm25 = parseVal("calc_pm25");
+  const pm10 = parseVal("calc_pm10");
+  const no2 = parseVal("calc_no2");
+  const so2 = parseVal("calc_so2");
+  const co = parseVal("calc_co");
+  const o3 = parseVal("calc_o3");
+  const nh3 = parseVal("calc_nh3");
 
   const inputs = { pm25, pm10, no2, so2, co, o3, nh3 };
   const subIndices = {};
@@ -1983,7 +2042,7 @@ window.computeAqi = function() {
   const hasPm = subIndices.pm25 !== undefined || subIndices.pm10 !== undefined;
 
   if (count === 0) {
-    alert("Please enter at least one valid pollutant concentration value.");
+    if (showAlert) alert("Please enter at least one valid pollutant concentration value.");
     return;
   }
 
@@ -2040,6 +2099,44 @@ window.computeAqi = function() {
     `).join("");
   }
 };
+
+// Automatically sync CPCB Calculator inputs and breakdown with active city
+function syncCalculatorWithCity(city) {
+  if (!city) return;
+  const p = city.rawPollutants;
+  const pm25El = document.getElementById("calc_pm25");
+  const pm10El = document.getElementById("calc_pm10");
+  const no2El = document.getElementById("calc_no2");
+  const so2El = document.getElementById("calc_so2");
+  const coEl = document.getElementById("calc_co");
+  const o3El = document.getElementById("calc_o3");
+  const nh3El = document.getElementById("calc_nh3");
+
+  if (!pm25El || !pm10El) return;
+
+  if (p) {
+    pm25El.value = (p.pm25 !== undefined && p.pm25 !== null) ? p.pm25 : (city.pm25 || 25);
+    pm10El.value = (p.pm10 !== undefined && p.pm10 !== null) ? p.pm10 : (city.pm10 || 45);
+    no2El.value = (p.no2 !== undefined && p.no2 !== null) ? p.no2 : Math.round((city.no2 || 25) * 1.88 * 10) / 10;
+    so2El.value = (p.so2 !== undefined && p.so2 !== null) ? p.so2 : Math.round((city.so2 || 10) * 2.62 * 10) / 10;
+    coEl.value = (p.co !== undefined && p.co !== null) ? p.co : Math.round(((city.co || 800) / 1000) * 100) / 100;
+    o3El.value = (p.o3 !== undefined && p.o3 !== null) ? p.o3 : Math.round((city.o3 || 20) * 1.96 * 10) / 10;
+    nh3El.value = (p.nh3 !== undefined && p.nh3 !== null) ? p.nh3 : 22.0;
+  } else {
+    pm25El.value = (city.pm25 !== undefined && city.pm25 !== null) ? city.pm25 : 25;
+    pm10El.value = (city.pm10 !== undefined && city.pm10 !== null) ? city.pm10 : 45;
+    no2El.value = Math.round((city.no2 || 25) * 1.88 * 10) / 10;
+    so2El.value = Math.round((city.so2 || 10) * 2.62 * 10) / 10;
+    coEl.value = Math.round(((city.co || 800) / 1000) * 100) / 100;
+    o3El.value = Math.round((city.o3 || 20) * 1.96 * 10) / 10;
+    nh3El.value = 22.0;
+  }
+
+  if (typeof window.computeAqi === "function") {
+    window.computeAqi(false);
+  }
+}
+window.syncCalculatorWithCity = syncCalculatorWithCity;
 
 // Load Live Pollutants from OpenWeather / Open-Meteo Air Pollution API into Calculator
 window.fetchLiveForCalculator = async function() {
